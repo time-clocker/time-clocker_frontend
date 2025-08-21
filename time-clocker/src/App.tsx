@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import AdminDashboard from "./pages/admin-dashboard";
 import UserDashboard from "./pages/user-dashboard";
 import './index.css'
+import AuthPage from "./pages/auth-page";
 
 function App() {
 
@@ -17,6 +18,7 @@ function App() {
           <Routes>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/user" element={<UserDashboard />} />
+            <Route path="/login" element={<AuthPage />} />
           </Routes>
         </div>
       </div>
