@@ -103,7 +103,7 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               <div>
-                <Text>Total Proyectos</Text>
+                <Text>Total</Text>
                 <Metric className="text-gray-800">{totalProjects}</Metric>
               </div>
             </Flex>
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
                 <TableHeaderCell className="bg-blue-50 text-blue-700">Horas Trabajadas</TableHeaderCell>
                 <TableHeaderCell className="bg-blue-50 text-blue-700">Tarifa por Hora</TableHeaderCell>
                 <TableHeaderCell className="bg-blue-50 text-blue-700">Ganancias</TableHeaderCell>
-                <TableHeaderCell className="bg-blue-50 text-blue-700">Proyectos</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Total</TableHeaderCell>
               </TableRow>
             </TableHead>
             <TableBody>
