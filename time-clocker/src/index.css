@@ -2,3 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+
+@layer components {
+  .btn-primary {
+    @apply bg-pandora-green hover:bg-pandora-green-dark text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-pandora-yellow hover:bg-pandora-yellow-dark text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-pandora-green text-pandora-green hover:bg-pandora-green hover:text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200;
+  }
+  
+  .text-pandora {
+    @apply text-pandora-green;
+  }
+  
+  .text-pandora-secondary {
+    @apply text-pandora-yellow;
+  }
+  
+  .text-pandora-muted {
+    @apply text-pandora-gray;
+  }
+  
+  .bg-pandora-section {
+    @apply bg-gradient-to-br from-green-50 to-yellow-50;
+  }
+}

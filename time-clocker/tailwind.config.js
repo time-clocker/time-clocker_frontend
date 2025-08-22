@@ -12,6 +12,16 @@ export default {
     ],
   theme: {
     extend: {
+      colors: {
+        'pandora-green': '#008037',
+        'pandora-green-dark': '#006429',
+        'pandora-yellow': '#FAC300',
+        'pandora-yellow-dark': '#E0AF00',
+        'pandora-gray': '#888AA0',
+        'pandora-gray-dark': '#6B7280',
+        'pandora': '#ECEBF4',
+        'pandora-background': '#b8e0d2',
+      },
       keyframes: {
         hide: {
           from: { opacity: "1" },
