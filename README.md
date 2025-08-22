@@ -38,8 +38,11 @@ La aplicación utiliza la paleta de colores oficial de PANDORA:
    cd pandora-frontend
 
 2. **Instalar dependencias**
+   ```bash
+   npm install
+   o
+   pnpm install
 
-bash
-npm install
-o
-pnpm install
+3. Ejecutar en desarrollo
+   ```bash
+   npm run dev
