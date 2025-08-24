@@ -53,7 +53,7 @@ export const AuthForm = ({
                   <SelectItem 
                     key={type.value} 
                     value={type.value}
-                    className="hover:bg-blue-50 text-gray-700 transition-colors duration-150"
+                    className="bg-white hover:bg-blue-50 text-gray-700 transition-colors duration-150"
                   >
                     {type.label}
                   </SelectItem>
