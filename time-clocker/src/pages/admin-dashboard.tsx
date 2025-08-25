@@ -30,18 +30,15 @@ function fixed2(n: number | undefined) {
 }
 
 export default function AdminDashboard() {
-  // Año/Mes seleccionados
   const now = useMemo(() => new Date(), []);
   const [year, setYear] = useState<number>(now.getFullYear());
-  const [month, setMonth] = useState<number>(now.getMonth() + 1); // 1..12
+  const [month, setMonth] = useState<number>(now.getMonth() + 1); 
 
-  // Estado de datos/remoto
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [data, setData] = useState<GlobalMonthlyResponse>({ rows: [] });
 
-  // === Fetch: /reports/global/monthly (admin) ===
   async function fetchMonthly() {
     try {
       setLoading(true);
@@ -79,13 +76,10 @@ export default function AdminDashboard() {
     }
   }
 
-  // Carga inicial con mes actual
   useEffect(() => {
     fetchMonthly();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Listas para los Selects
   const yearOptions = useMemo(() => {
     const current = new Date().getFullYear();
     return Array.from({ length: 6 }, (_, i) => String(current - i)); // últimos 6 años
@@ -95,14 +89,12 @@ export default function AdminDashboard() {
     []
   );
 
-  // === Totales reales (widgets) ===
   const totalEmployees = data?.rows?.length ?? 0;
   const totalHours = data?.totals?.hours_total ??
     (data?.rows?.reduce((acc, r) => acc + (r.hours?.total ?? 0), 0) ?? 0);
   const totalPay = data?.totals?.pay_total ??
     (data?.rows?.reduce((acc, r) => acc + (r.pay_total ?? 0), 0) ?? 0);
 
-  // === Datos para gráficos desde el backend (si hay filas) ===
   const hoursDistributionData = (data?.rows ?? []).map(r => ({
     name: r.full_name ?? "—",
     value: r.hours?.total ?? 0,
@@ -113,14 +105,12 @@ export default function AdminDashboard() {
     earnings: r.pay_total ?? 0,
   }));
 
-  // Paletas (tremor)
   const donutColors = ["blue", "cyan", "indigo", "violet", "slate"];
   const barColors = ["blue"];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-4">
             <div className="flex flex-col">
@@ -129,7 +119,6 @@ export default function AdminDashboard() {
               </h1>
               <p className="text-gray-600 mt-2">Resumen del rendimiento del equipo</p>
             </div>
-            {/* Selectores de año y mes a la derecha */}
             <div className="flex items-end gap-3 mt-2 md:mt-0">
               <div className="flex flex-col min-w-36">
                 <label className="text-xs text-gray-600 mb-1">Año</label>
@@ -171,9 +160,7 @@ export default function AdminDashboard() {
           <Divider />
         </div>
 
-        {/* ===== Widgets conectados a datos reales ===== */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Total Empleados */}
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="blue">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -189,7 +176,6 @@ export default function AdminDashboard() {
             </Flex>
           </Card>
 
-          {/* Total Horas */}
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="green">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-green-100 rounded-lg">
@@ -205,7 +191,6 @@ export default function AdminDashboard() {
             </Flex>
           </Card>
 
-          {/* Ganancias Totales */}
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="violet">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-violet-100 rounded-lg">
@@ -222,7 +207,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* ===== Gráficos (alimentados por backend) ===== */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <Card className="rounded-xl shadow-lg border-0 bg-white">
             <Title className="text-lg font-semibold text-gray-800 mb-4">Distribución de Horas por Empleado</Title>
@@ -261,10 +245,7 @@ export default function AdminDashboard() {
             </div>
           </Card>
         </div>
-
-        {/* ===== Controles Año/Mes + Tabla del endpoint real ===== */}
         <Card className="rounded-xl shadow-lg border-0 bg-white">
-          {/* Solo título, sin selectores aquí */}
           <div className="flex flex-col">
             <Title className="text-lg font-semibold text-gray-800 flex-1">
               Totales del mes por empleado (
@@ -273,7 +254,6 @@ export default function AdminDashboard() {
             </Title>
           </div>
 
-          {/* Rango & estado */}
           <div className="mt-3 flex flex-wrap gap-3 items-center">
             {data?.range?.from && data?.range?.to ? (
               <Badge color="blue">
@@ -323,7 +303,6 @@ export default function AdminDashboard() {
             </TableBody>
           </Table>
 
-          {/* Totales del backend si vienen */}
           <div className="mt-4 flex justify-between items-center">
             <Text className="text-sm text-gray-600">Mostrando {data?.rows?.length ?? 0} empleados</Text>
             <div className="text-sm text-gray-700">
@@ -342,7 +321,6 @@ export default function AdminDashboard() {
           </div>
         </Card>
 
-        {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Actualizado por última vez: {new Date().toLocaleDateString()}</p>
         </div>
