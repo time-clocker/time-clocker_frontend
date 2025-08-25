@@ -3,7 +3,9 @@ import AdminDashboard from "./pages/admin-dashboard";
 import UserDashboard from "./pages/user-dashboard";
 import './index.css'
 import AuthPage from "./pages/auth-page";
-import FlameIcon from "./assets/flame_icon.png";
+
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
 
@@ -12,12 +14,14 @@ function App() {
       <BrowserRouter>
       <div className="min-h-screen bg-gray-100 ">
           <Routes>
+            <Route path="/" element={<AuthPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/user" element={<UserDashboard />} />
             <Route path="/login" element={<AuthPage />} />
           </Routes>
       </div>
     </BrowserRouter>
+    <ToastContainer position="top-right" autoClose={3000} />
     </>
   )
 }
