@@ -28,12 +28,107 @@ const monthlyEarningsData = [
 
 export default function UserDashboard() {
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
-  
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [currentTimeEntryId, setCurrentTimeEntryId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const totalHours = hoursData.reduce((acc, curr) => acc + curr.value, 0);
   const currentData = timeRange === 'week' ? weeklyEarningsData : monthlyEarningsData;
   const totalEarnings = currentData.reduce((acc, curr) => acc + curr.earnings, 0);
   const totalWorkedHours = currentData.reduce((acc, curr) => acc + curr.hours, 0);
   const avgHourlyRate = totalWorkedHours > 0 ? totalEarnings / totalWorkedHours : 0;
+
+
+
+  const getAuthToken = (): string | null => {
+    // Aquí debes obtener el token de tu sistema de autenticación
+    // Por ejemplo, desde localStorage, context, etc.
+    return localStorage.getItem('authToken');
+  };
+
+  const clockIn = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch('http://127.0.0.1:8000/time-entries/clock-in', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          tz: "America/Bogota"
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication failed. Please log in again.");
+        }
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setIsClockedIn(true);
+      setCurrentTimeEntryId(data.id);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      console.error("Clock-in error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clockOut = async () => {
+    if (!currentTimeEntryId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`http://127.0.0.1:8000/time-entries/${currentTimeEntryId}/clock-out`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          tz: "America/Bogota"
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Authentication failed. Please log in again.");
+        }
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      setIsClockedIn(false);
+      setCurrentTimeEntryId(null);
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      console.error("Clock-out error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
@@ -46,6 +141,29 @@ export default function UserDashboard() {
               <p className="text-gray-600 mt-2">Resumen de tu actividad y ganancias</p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
+              <div className="flex space-x-2">
+                <Button
+                  size="lg"
+                  variant={isClockedIn ? "secondary" : "primary"}
+                  onClick={clockIn}
+                  disabled={isClockedIn || loading}
+                  loading={loading && !isClockedIn}
+                  className="bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105"
+                >
+                  {isClockedIn ? "Registro Iniciado" : "Clock-In"}
+                </Button>
+                <Button
+                  size="lg"
+                  variant={isClockedIn ? "primary" : "secondary"}
+                  onClick={clockOut}
+                  disabled={!isClockedIn || loading}
+                  loading={loading && isClockedIn}
+                  className="bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105"
+                >
+                  Clock-Out
+                </Button>
+              </div>
+
               <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
                 JS
               </div>
@@ -53,7 +171,7 @@ export default function UserDashboard() {
           </div>
           <Divider />
         </div>
-        
+
         {/* Resumen de métricas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="blue">
@@ -69,7 +187,7 @@ export default function UserDashboard() {
               </div>
             </Flex>
           </Card>
-          
+
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="green">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-green-100 rounded-lg">
@@ -83,7 +201,7 @@ export default function UserDashboard() {
               </div>
             </Flex>
           </Card>
-          
+
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="violet">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-violet-100 rounded-lg">
@@ -98,21 +216,21 @@ export default function UserDashboard() {
             </Flex>
           </Card>
         </div>
-        
+
         {/* Selector de rango de tiempo */}
         <Card className="rounded-xl shadow-lg border-0 bg-white mb-8">
           <Title className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Rango de Tiempo</Title>
           <Flex justifyContent="center" className="gap-4">
-            <Button 
-              size="xl" 
+            <Button
+              size="xl"
               variant={timeRange === 'week' ? 'primary' : 'secondary'}
               onClick={() => setTimeRange('week')}
               className="rounded-lg transition-all duration-300 hover:scale-105"
             >
               Semanal
             </Button>
-            <Button 
-              size="xl" 
+            <Button
+              size="xl"
               variant={timeRange === 'month' ? 'primary' : 'secondary'}
               onClick={() => setTimeRange('month')}
               className="rounded-lg transition-all duration-300 hover:scale-105"
@@ -121,7 +239,7 @@ export default function UserDashboard() {
             </Button>
           </Flex>
         </Card>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Gráfico de donut (horas trabajadas) */}
           <Card className="rounded-xl shadow-lg border-0 bg-white">
@@ -141,7 +259,7 @@ export default function UserDashboard() {
               Total: {totalHours} horas esta semana
             </div>
           </Card>
-          
+
           {/* Gráfico de barras (ganancias vs tiempo) */}
           <Card className="rounded-xl shadow-lg border-0 bg-white">
             <Title className="text-lg font-semibold text-gray-800 mb-4">
@@ -162,7 +280,7 @@ export default function UserDashboard() {
             </div>
           </Card>
         </div>
-        
+
         {/* Footer con información adicional */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Actualizado por última vez: {new Date().toLocaleDateString()}</p>
