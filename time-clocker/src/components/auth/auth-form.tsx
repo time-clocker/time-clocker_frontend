@@ -1,13 +1,7 @@
 import { Select, SelectItem, Text } from "@tremor/react";
 import { AuthInputField } from "./auth-input-field";
 import { AuthSubmitButton } from "./auth-submit-button";
-import { 
-  UserIcon, 
-  DocumentIcon, 
-  EmailIcon, 
-  PasswordIcon, 
-  ConfirmIcon 
-} from "./icons/auth-icons";
+import { UserIcon, DocumentIcon, EmailIcon, PasswordIcon, ConfirmIcon } from "./icons/auth-icons";
 import { type AuthFormProps, documentTypes } from "../../types/auth";
 
 export const AuthForm = ({
@@ -15,8 +9,9 @@ export const AuthForm = ({
   formData,
   handleInputChange,
   handleSelectChange,
-  handleSubmit
-}: AuthFormProps) => {
+  handleSubmit,
+  isLoading = false
+}: AuthFormProps & { isLoading?: boolean }) => {
 
   const handleNumberInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -112,7 +107,7 @@ export const AuthForm = ({
         />
       )}
 
-      <AuthSubmitButton isLogin={isLogin} />
+      <AuthSubmitButton isLogin={isLogin} isLoading={isLoading} />
     </form>
   );
 };

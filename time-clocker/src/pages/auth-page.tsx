@@ -2,10 +2,16 @@ import { Card, Title, Button, Text, Divider } from "@tremor/react";
 import { useState } from "react";
 import { AuthForm } from "../components/auth/auth-form";
 
+
+import { authService } from "../services/auth-service";
+import { toast } from "react-toastify";
+
 import PANDORA from "../assets/PANDORA.png";
+import type { LoginRequest } from "../types/auth";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     typeDocument: "Cédula de ciudadanía", 
@@ -23,16 +29,34 @@ export default function AuthPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (isLogin) {
-      console.log("Login attempt:", { email: formData.email, password: formData.password });
+      setIsLoading(true);
+      try {
+        const loginData: LoginRequest = {
+          email: formData.email,
+          password: formData.password,
+          returnSecureToken: true
+        };
+
+        const response = await authService.login(loginData);
+        
+        toast.success("¡Inicio de sesión exitoso!");
+        
+        window.location.href = '/user';
+        
+      } catch (error: any) {
+        toast.error(error.message || "Error en el inicio de sesión");
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       if (formData.password !== formData.confirmPassword) {
-        alert("Las contraseñas no coinciden");
+        toast.error("Las contraseñas no coinciden");
         return;
       }
-      console.log("Register attempt:", formData);
     }
   };
 
