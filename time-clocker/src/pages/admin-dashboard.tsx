@@ -1,4 +1,8 @@
-import { Card, Title, DonutChart, BarChart, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, Metric, Text, Flex, Divider } from "@tremor/react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Card, Title, DonutChart, BarChart, Table, TableHead, TableRow, TableHeaderCell, TableBody,TableCell,Metric,Text,Flex,Divider,Badge,Select,SelectItem,
+} from "@tremor/react";
+import { authService } from "../services/auth-service";
 
 const usersData = [
   { id: 1, name: "Juan Pérez", hours: 40, earnings: 1200, rate: 30, projects: 5 },
@@ -31,11 +35,98 @@ const earningsData = [
 const donutColors = ["blue", "cyan", "indigo", "violet", "slate"];
 const barColors = ["blue"];
 
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+type GlobalMonthlyRow = {
+  employee_id: string;
+  full_name: string;
+  hours: { diurnal: number; nocturnal: number; extra: number; total: number };
+  pay_total: number;
+};
+
+type GlobalMonthlyResponse = {
+  range?: { from?: string; to?: string; timezone?: string };
+  rows: GlobalMonthlyRow[];
+  totals?: { hours_total?: number; pay_total?: number };
+};
+
+function currency(n: number | undefined) {
+  const v = Number(n ?? 0);
+  return v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function fixed2(n: number | undefined) {
+  const v = Number(n ?? 0);
+  return v.toFixed(2);
+}
+
 export default function AdminDashboard() {
   const totalHours = usersData.reduce((acc, user) => acc + user.hours, 0);
   const totalEarnings = usersData.reduce((acc, user) => acc + user.earnings, 0);
   const totalProjects = usersData.reduce((acc, user) => acc + user.projects, 0);
   const avgHourlyRate = totalEarnings / totalHours;
+
+  const now = useMemo(() => new Date(), []);
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth() + 1); // 1..12
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [data, setData] = useState<GlobalMonthlyResponse>({ rows: [] });
+
+  async function fetchMonthly() {
+    try {
+      setLoading(true);
+      setError(null);
+      setAuthError(null);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...authService.getAuthorizationHeader(),
+      };
+
+      if (!headers["Authorization"]) {
+        setAuthError("No hay sesión activa. Inicia sesión como administrador.");
+        setData({ rows: [] });
+        return;
+      }
+
+      const res = await fetch(
+        `${API_BASE}/reports/global/monthly?year=${year}&month=${month}`,
+        { headers }
+      );
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `HTTP ${res.status}`);
+      }
+
+      const json = (await res.json()) as GlobalMonthlyResponse;
+      setData(json ?? { rows: [] });
+    } catch (e: any) {
+      setError(e?.message ?? "Error al cargar datos");
+      setData({ rows: [] });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Carga inicial con mes actual
+  useEffect(() => {
+    fetchMonthly();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listas para los Selects
+  const yearOptions = useMemo(() => {
+    const current = new Date().getFullYear();
+    // últimos 6 años (ajusta si quieres más)
+    return Array.from({ length: 6 }, (_, i) => String(current - i));
+  }, []);
+
+  const monthOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => String(i + 1)),
+    []
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 md:p-8">
@@ -50,8 +141,8 @@ export default function AdminDashboard() {
           </div>
           <Divider />
         </div>
-        
-        {/* Resumen de métricas */}
+
+        {/* Resumen de métricas (igual) */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="blue">
             <Flex justifyContent="start" className="space-x-4">
@@ -66,7 +157,7 @@ export default function AdminDashboard() {
               </div>
             </Flex>
           </Card>
-          
+
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="green">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-green-100 rounded-lg">
@@ -80,7 +171,7 @@ export default function AdminDashboard() {
               </div>
             </Flex>
           </Card>
-          
+
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="violet">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-violet-100 rounded-lg">
@@ -94,7 +185,7 @@ export default function AdminDashboard() {
               </div>
             </Flex>
           </Card>
-          
+
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="amber">
             <Flex justifyContent="start" className="space-x-4">
               <div className="p-3 bg-amber-100 rounded-lg">
@@ -109,9 +200,9 @@ export default function AdminDashboard() {
             </Flex>
           </Card>
         </div>
-        
+
+        {/* Gráficos (igual) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Gráfico de donut (distribución de horas) */}
           <Card className="rounded-xl shadow-lg border-0 bg-white">
             <Title className="text-lg font-semibold text-gray-800 mb-4">Distribución de Horas por Empleado</Title>
             <DonutChart
@@ -129,8 +220,7 @@ export default function AdminDashboard() {
               Total: {totalHours} horas esta semana
             </div>
           </Card>
-          
-          {/* Gráfico de barras (ganancias por usuario) */}
+
           <Card className="rounded-xl shadow-lg border-0 bg-white">
             <Title className="text-lg font-semibold text-gray-800 mb-4">
               Ganancias por Empleado
@@ -138,7 +228,7 @@ export default function AdminDashboard() {
             <BarChart
               data={earningsData}
               index="name"
-              categories={['earnings']}
+              categories={["earnings"]}
               colors={barColors}
               valueFormatter={(value) => `$${value}`}
               yAxisWidth={60}
@@ -150,43 +240,122 @@ export default function AdminDashboard() {
             </div>
           </Card>
         </div>
-        
-        {/* Tabla de usuarios */}
+
+        {/* ======== Controles Año/Mes (Tremor) + TABLA desde /reports/global/monthly ======== */}
         <Card className="rounded-xl shadow-lg border-0 bg-white">
-          <Title className="text-lg font-semibold text-gray-800 mb-4">Resumen de Rendimiento por Empleado</Title>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <Title className="text-lg font-semibold text-gray-800">
+              Totales del mes por empleado (
+              {new Date(year, month - 1).toLocaleString(undefined, { month: "long", year: "numeric" })}
+              )
+            </Title>
+
+            <div className="flex items-end gap-3">
+              <div className="flex flex-col min-w-36">
+                <label className="text-xs text-gray-600 mb-1">Año</label>
+                <Select
+                  value={String(year)}
+                  onValueChange={(v) => setYear(Number(v))}
+                  className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                >
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={y} className="tremor-option-solid">
+                      {y}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="flex flex-col min-w-52">
+                <label className="text-xs text-gray-600 mb-1">Mes</label>
+                <Select
+                  value={String(month)}
+                  onValueChange={(v) => setMonth(Number(v))}
+                  className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                >
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m} value={m} className="tremor-option-solid">
+                      {m.toString().padStart(2, "0")} — {new Date(0, Number(m) - 1).toLocaleString(undefined, { month: "long" })}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
+
+              <button
+                onClick={fetchMonthly}
+                className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition"
+                disabled={loading}
+              >
+                {loading ? "Cargando..." : "Actualizar"}
+              </button>
+            </div>
+          </div>
+
+          {/* Rango & estado */}
+          <div className="mt-3 flex flex-wrap gap-3 items-center">
+            {data?.range?.from && data?.range?.to ? (
+              <Badge color="blue">
+                Rango: {data.range.from} → {data.range.to}
+                {data.range?.timezone ? ` (${data.range.timezone})` : ""}
+              </Badge>
+            ) : null}
+            {authError ? <span className="text-sm text-red-600"> {authError} </span> : null}
+            {error ? <span className="text-sm text-red-600">Error: {error}</span> : null}
+          </div>
+
           <Table className="mt-5">
             <TableHead>
               <TableRow>
-                <TableHeaderCell className="bg-blue-50 text-blue-700">Nombre</TableHeaderCell>
-                <TableHeaderCell className="bg-blue-50 text-blue-700">Horas Trabajadas</TableHeaderCell>
-                <TableHeaderCell className="bg-blue-50 text-blue-700">Tarifa por Hora</TableHeaderCell>
-                <TableHeaderCell className="bg-blue-50 text-blue-700">Ganancias</TableHeaderCell>
-                <TableHeaderCell className="bg-blue-50 text-blue-700">Total</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Empleado</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Diurna</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Nocturna</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Extra</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Total hrs</TableHeaderCell>
+                <TableHeaderCell className="bg-blue-50 text-blue-700">Pago</TableHeaderCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {usersData.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.hours} hrs</TableCell>
-                  <TableCell>${user.rate}/hr</TableCell>
-                  <TableCell>${user.earnings}</TableCell>
-                  <TableCell>{user.projects}</TableCell>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={6}>Cargando…</TableCell>
                 </TableRow>
-              ))}
+              )}
+
+              {!loading && data?.rows?.length === 0 && !error && (
+                <TableRow>
+                  <TableCell colSpan={6}>Sin datos para este mes.</TableCell>
+                </TableRow>
+              )}
+
+              {!loading &&
+                data?.rows?.map((row) => (
+                  <TableRow key={row.employee_id}>
+                    <TableCell className="font-medium">{row.full_name ?? "—"}</TableCell>
+                    <TableCell>{fixed2(row.hours?.diurnal)} hrs</TableCell>
+                    <TableCell>{fixed2(row.hours?.nocturnal)} hrs</TableCell>
+                    <TableCell>{fixed2(row.hours?.extra)} hrs</TableCell>
+                    <TableCell>{fixed2(row.hours?.total)} hrs</TableCell>
+                    <TableCell>${currency(row.pay_total)}</TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
+
+          {/* Totales del backend si vienen */}
           <div className="mt-4 flex justify-between items-center">
-            <Text className="text-sm text-gray-600">
-              Mostrando {usersData.length} empleados
-            </Text>
-            <Text className="text-sm text-gray-600">
-              Promedio: ${avgHourlyRate.toFixed(2)}/hora
-            </Text>
+            <Text className="text-sm text-gray-600">Mostrando {data?.rows?.length ?? 0} empleados</Text>
+            <div className="text-sm text-gray-700">
+              {data?.totals ? (
+                <>
+                  <span className="mr-4">Horas totales: <b>{fixed2(data.totals.hours_total ?? 0)}</b></span>
+                  <span>Pago total: <b>${currency(data.totals.pay_total ?? 0)}</b></span>
+                </>
+              ) : null}
+            </div>
           </div>
         </Card>
-        
-        {/* Footer con información adicional */}
+
+        {/* Footer (igual) */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Actualizado por última vez: {new Date().toLocaleDateString()}</p>
         </div>

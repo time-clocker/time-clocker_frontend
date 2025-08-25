@@ -53,4 +53,9 @@ export const authService = {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ROLE_KEY);
   },
+  getAuthorizationHeader(): Record<string, string | undefined> {
+  const token = this.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
 };
