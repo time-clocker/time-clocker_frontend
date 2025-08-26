@@ -1,5 +1,6 @@
 import { Card, Title, DonutChart, BarChart, Flex, Button, Metric, Text, Divider } from "@tremor/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { authService } from "../services/auth-service";
 
 const hoursData = [
   { name: "Horas trabajadas", value: 35 },
@@ -32,6 +33,38 @@ export default function UserDashboard() {
   const [currentTimeEntryId, setCurrentTimeEntryId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>(''); 
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = () => {
+    const userData = authService.getUserData();
+    const userName = authService.getUserName();
+    
+    setUserData(userData);
+    setUserName(userName);
+    
+    if (!userData) {
+      fetchUserData();
+    }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const userProfile = await authService.getEmployeeProfile();
+      setUserData(userProfile);
+      
+      if (userProfile?.full_name) {
+        setUserName(userProfile.full_name);
+        localStorage.setItem('userData', JSON.stringify(userProfile));
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
 
   const totalHours = hoursData.reduce((acc, curr) => acc + curr.value, 0);
   const currentData = timeRange === 'week' ? weeklyEarningsData : monthlyEarningsData;
@@ -42,8 +75,6 @@ export default function UserDashboard() {
 
 
   const getAuthToken = (): string | null => {
-    // Aquí debes obtener el token de tu sistema de autenticación
-    // Por ejemplo, desde localStorage, context, etc.
     return localStorage.getItem('authToken');
   };
 
@@ -130,6 +161,15 @@ export default function UserDashboard() {
     }
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -163,10 +203,14 @@ export default function UserDashboard() {
                   Clock-Out
                 </Button>
               </div>
-
-              <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                JS
+              <div className="flex items-center space-x-3 text-right">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-700">Bienvenido</p>
+                  <p className="text-lg font-semibold text-gray-900">{userName}</p>
+                </div>
+  
               </div>
+
             </div>
           </div>
           <Divider />
