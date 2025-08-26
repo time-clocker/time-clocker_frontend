@@ -1,5 +1,6 @@
 import { Card, Title, DonutChart, BarChart, Flex, Button, Metric, Text, Divider } from "@tremor/react";
 import { useState } from "react";
+import { authService } from "../services/auth-service";
 
 const hoursData = [
   { name: "Horas trabajadas", value: 35 },
@@ -41,18 +42,13 @@ export default function UserDashboard() {
 
 
 
-  const getAuthToken = (): string | null => {
-    // Aquí debes obtener el token de tu sistema de autenticación
-    // Por ejemplo, desde localStorage, context, etc.
-    return localStorage.getItem('authToken');
-  };
 
   const clockIn = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const token = getAuthToken();
+      const token = authService.getToken();
       if (!token) {
         throw new Error("No authentication token found");
       }
@@ -89,27 +85,23 @@ export default function UserDashboard() {
   };
 
   const clockOut = async () => {
-    if (!currentTimeEntryId) return;
-
     setLoading(true);
     setError(null);
-
+    
     try {
-      const token = getAuthToken();
+      const token = authService.getToken();
       if (!token) {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/time-entries/${currentTimeEntryId}/clock-out`, {
+      const response = await fetch('http://127.0.0.1:8000/time-entries/clock-out', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          tz: "America/Bogota"
-        })
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {
@@ -119,9 +111,10 @@ export default function UserDashboard() {
         throw new Error(`Server error: ${response.status}`);
       }
 
+      const data = await response.json();
       setIsClockedIn(false);
       setCurrentTimeEntryId(null);
-
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
       console.error("Clock-out error:", err);
