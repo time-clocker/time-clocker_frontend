@@ -73,17 +73,12 @@ export default function UserDashboard() {
   const avgHourlyRate = totalWorkedHours > 0 ? totalEarnings / totalWorkedHours : 0;
 
 
-
-  const getAuthToken = (): string | null => {
-    return localStorage.getItem('authToken');
-  };
-
   const clockIn = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const token = getAuthToken();
+      const token = authService.getToken();
       if (!token) {
         throw new Error("No authentication token found");
       }
@@ -120,27 +115,23 @@ export default function UserDashboard() {
   };
 
   const clockOut = async () => {
-    if (!currentTimeEntryId) return;
-
     setLoading(true);
     setError(null);
-
+    
     try {
-      const token = getAuthToken();
+      const token = authService.getToken();
       if (!token) {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/time-entries/${currentTimeEntryId}/clock-out`, {
+      const response = await fetch('http://127.0.0.1:8000/time-entries/clock-out', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          tz: "America/Bogota"
-        })
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {
@@ -150,9 +141,10 @@ export default function UserDashboard() {
         throw new Error(`Server error: ${response.status}`);
       }
 
+      const data = await response.json();
       setIsClockedIn(false);
       setCurrentTimeEntryId(null);
-
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
       console.error("Clock-out error:", err);
