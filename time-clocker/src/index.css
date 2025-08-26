@@ -31,4 +31,16 @@
   .bg-pandora-section {
     @apply bg-gradient-to-br from-green-50 to-yellow-50;
   }
+  
+  /* Puedes ajustar los colores según tu preferencia */
+  .tremor-option-solid {
+    background-color: #fff !important;
+    color: #1e293b !important;
+    transition: background 0.2s;
+  }
+  .tremor-option-solid:hover,
+  .tremor-option-solid[data-headlessui-state~="active"] {
+    background-color: #2563eb !important; /* azul-600 */
+    color: #fff !important;
+  }
 }
