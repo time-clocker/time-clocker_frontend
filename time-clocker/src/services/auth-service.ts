@@ -4,7 +4,7 @@ export type LoginRequest = {
   returnSecureToken?: boolean;
 };
 
-const API = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
 
 const TOKEN_KEY = "authToken";
 const ROLE_KEY = "role";

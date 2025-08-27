@@ -7,7 +7,7 @@ import { authService } from "../services/auth-service";
 import { clockService } from "../services/clock-service";
 
 const TZ = "America/Bogota";
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "https://time-clocker-backend.onrender.com";
 
 const moneyCO = (n: number) => (n ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 0 });
 const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
