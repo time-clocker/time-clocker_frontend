@@ -58,7 +58,7 @@ export default function UserDashboard() {
   const [employeeRate, setEmployeeRate] = useState<number>(0);
 
   const [isClockedIn, setIsClockedIn] = useState(false);
-  const [, setLoadingReport] = useState(false); // ← corrección: omitimos la variable no usada
+  const [, setLoadingReport] = useState(false);
   const [loadingClock, setLoadingClock] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +89,6 @@ export default function UserDashboard() {
   useEffect(() => {
     if (!employeeId) return;
 
-    // Limpiar inmediatamente si el estado pertenece a otro empleado
     clockService.clearIfNotCurrentEmployee(employeeId);
 
     (async () => {
@@ -534,14 +533,14 @@ export default function UserDashboard() {
                 {error ? <span className="text-red-600">{error}</span> : "Resumen de tu actividad y ganancias"}
               </p>
             </div>
-            <div className="hidden md:flex items-center space-x-4">
-              <div className="flex space-x-2">
+             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   size="lg"
                   onClick={clockIn}
                   disabled={isClockedIn || loadingClock}
                   loading={loadingClock && !isClockedIn}
-                  className={`bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105 ${isClockedIn ? "opacity-70" : ""}`}
+                  className={`w-full sm:w-auto bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105 ${isClockedIn ? "opacity-70" : ""}`}
                 >
                   {isClockedIn ? "Registro Iniciado" : "Clock-In"}
                 </Button>
@@ -550,17 +549,15 @@ export default function UserDashboard() {
                   onClick={clockOut}
                   disabled={!isClockedIn || loadingClock}
                   loading={loadingClock && isClockedIn}
-                  className={`bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105 ${!isClockedIn ? "opacity-70" : ""}`}
+                  className={`w-full sm:w-auto bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105 ${!isClockedIn ? "opacity-70" : ""}`}
                 >
                   Clock-Out
                 </Button>
               </div>
-              <div className="flex items-center space-x-3 text-right">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-700">Bienvenido</p>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {formatUserName(userName)}
-                  </div>
+              <div className="text-center sm:text-right">
+                <p className="text-sm font-medium text-gray-700">Bienvenido</p>
+                <div className="text-lg font-semibold text-gray-900">
+                  {formatUserName(userName)}
                 </div>
               </div>
             </div>
