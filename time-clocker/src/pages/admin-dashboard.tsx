@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Card, Title, DonutChart, BarChart, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell,
-  Metric, Text, Flex, Divider, Badge, Select, SelectItem,
-} from "@tremor/react";
+import { Card, Title, DonutChart, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, Metric, Text, Flex, Divider, Badge, Select, SelectItem} from "@tremor/react";
 import { authService } from "../services/auth-service";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
+const BAR_COLORS = ["#008037","#FAC300","#888AA0","#10b981","#3b82f6","#8b5cf6","#f43f5e","#f97316","#14b8a6","#ec4899"];
 
 type GlobalMonthlyRow = {
   employee_id: string;
@@ -32,7 +30,7 @@ function fixed2(n: number | undefined) {
 export default function AdminDashboard() {
   const now = useMemo(() => new Date(), []);
   const [year, setYear] = useState<number>(now.getFullYear());
-  const [month, setMonth] = useState<number>(now.getMonth() + 1); 
+  const [month, setMonth] = useState<number>(now.getMonth() + 1);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,9 +103,6 @@ export default function AdminDashboard() {
     earnings: r.pay_total ?? 0,
   }));
 
-  const donutColors = ["blue", "cyan", "indigo", "violet", "slate"];
-  const barColors = ["blue"];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -166,7 +161,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-blue-100 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
               <div>
@@ -181,7 +176,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-green-100 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
@@ -196,7 +191,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-violet-100 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
@@ -215,7 +210,7 @@ export default function AdminDashboard() {
               category="value"
               index="name"
               valueFormatter={(value) => `${value} hrs`}
-              colors={donutColors}
+              colors={["green", "blue", "yellow", "orange", "indigo", "violet", "cyan", "pink", "rose"]}
               variant="donut"
               className="h-72"
               showAnimation={true}
@@ -230,18 +225,38 @@ export default function AdminDashboard() {
             <Title className="text-lg font-semibold text-gray-800 mb-4">
               Ganancias por Empleado
             </Title>
-            <BarChart
-              data={earningsData}
-              index="name"
-              categories={["earnings"]}
-              colors={barColors}
-              valueFormatter={(value) => `$${currency(value)}`}
-              yAxisWidth={60}
-              showAnimation={true}
-              className="h-72"
-            />
-            <div className="mt-4 text-center text-sm text-gray-600">
-              Total: ${currency(totalPay)}
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {earningsData.map((item, index) => {
+                const max = Math.max(...earningsData.map(i => i.earnings));
+                const width = max > 0 ? (item.earnings / max) * 100 : 0;
+                const color = BAR_COLORS[index % BAR_COLORS.length];
+
+                return (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700 truncate w-32">{item.name}</span>
+                    <div className="flex-1 mx-3">
+                      <div
+                        className="h-4 rounded"
+                        style={{
+                          width: `${width}%`,
+                          backgroundColor: color,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-20 text-right">
+                      ${currency(item.earnings)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex justify-between items-center text-sm">
+                <Text className="text-gray-600">Total:</Text>
+                <Text className="font-semibold">${currency(totalPay)}</Text>
+              </div>
             </div>
           </Card>
         </div>
@@ -322,7 +337,8 @@ export default function AdminDashboard() {
         </Card>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Actualizado por última vez: {new Date().toLocaleDateString()}</p>
+          <p>© 2025 Pandora Restaurante, Inc. All rights reserved.</p>
+          <p>Desarrollado por JDT Software</p>
         </div>
       </div>
     </div>
