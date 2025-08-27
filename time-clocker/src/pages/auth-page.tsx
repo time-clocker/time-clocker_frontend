@@ -8,6 +8,13 @@ import { useNavigate } from "react-router-dom";
 import PANDORA from "../assets/PANDORA.png";
 import type { LoginRequest } from "../types/auth";
 
+const DOC_TYPE_MAP: Record<string, string> = {
+  "Cédula de ciudadanía": "CC",
+  "Cédula de extranjería": "CE",
+  "Tarjeta de identidad": "TI",
+  "Pasaporte": "PAS",
+};
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +41,7 @@ export default function AuthPage() {
     e.preventDefault();
 
     if (isLogin) {
+      // --- LOGIN ---
       setIsLoading(true);
       try {
         const loginData: LoginRequest = {
@@ -57,10 +65,36 @@ export default function AuthPage() {
         setIsLoading(false);
       }
     } else {
-
+      // --- REGISTRO ---
       if (formData.password !== formData.confirmPassword) {
         toast.error("Las contraseñas no coinciden");
         return;
+      }
+
+      setIsLoading(true);
+      try {
+        const payload = {
+          full_name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          doc_type: DOC_TYPE_MAP[formData.typeDocument] ?? formData.typeDocument,
+          doc_number: formData.documentNumber.trim(),
+        };
+
+        const registerData = await authService.register(payload);
+
+        toast.success("¡Registro exitoso!");
+        const role = (registerData?.role as string) ?? "employee";
+
+        if (role === "admin") {
+          navigate("/admin", { replace: true });
+        } else {
+          navigate("/user", { replace: true });
+        }
+      } catch (error: any) {
+        toast.error(error?.message || "Error en el registro");
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -94,6 +128,7 @@ export default function AuthPage() {
             handleInputChange={handleInputChange}
             handleSubmit={handleSubmit}
             handleSelectChange={handleSelectChange}
+            isLoading={isLoading}
           />
 
           <Divider className="my-6">o</Divider>

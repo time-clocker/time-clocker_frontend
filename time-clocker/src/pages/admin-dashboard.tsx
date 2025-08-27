@@ -5,7 +5,7 @@ import {
 } from "@tremor/react";
 import { authService } from "../services/auth-service";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
 
 type GlobalMonthlyRow = {
   employee_id: string;
