@@ -4,6 +4,14 @@ export type LoginRequest = {
   returnSecureToken?: boolean;
 };
 
+export type RegisterRequest = {
+  full_name: string;
+  email: string;
+  password: string;
+  doc_type: string;
+  doc_number: string;
+};
+
 const API = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
 
 const TOKEN_KEY = "authToken";
@@ -69,6 +77,32 @@ export const authService = {
       localStorage.removeItem(TOKEN_KEY);
       throw new Error("Login successful but failed to fetch user role and data");
     }
+  },
+
+  /** Nuevo método de registro */
+  async register(data: RegisterRequest) {
+    const res = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "Accept": "application/json" 
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.detail || "Registration failed");
+    }
+
+    const registerData = await res.json();
+    const token = registerData?.idToken;
+
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+
+    return registerData;
   },
 
   async getEmployeeProfile(): Promise<any> {
