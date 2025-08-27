@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import flameIcon from "../assets/flame-icon.png";
 import { authService } from "../services/auth-service";
+import { clockService } from "../services/clock-service";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -14,10 +15,12 @@ const Navbar = () => {
     setRole(r);
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate("/login", { replace: true });
-  };
+const handleLogout = () => {
+  // Limpiar TODO el estado de reloj al hacer logout
+  clockService.clearClockState();
+  authService.logout();
+  navigate("/login", { replace: true });
+};
 
   const handleLogoClick = () => {
     if (role === "admin") {

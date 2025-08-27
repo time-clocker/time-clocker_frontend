@@ -1,5 +1,6 @@
 /* eslint-disable no-undef */
 /** @type {import('tailwindcss').Config} */
+import tremor from 'tremor.config.js';
 
 // (Optional) Import default theme when using a custom font (Step 7)
 //import defaultTheme from 'tailwindcss/defaultTheme';

@@ -4,6 +4,7 @@ import {
 } from "@tremor/react";
 import { useEffect, useMemo, useState } from "react";
 import { authService } from "../services/auth-service";
+import { clockService } from "../services/clock-service";
 
 const TZ = "America/Bogota";
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
@@ -86,21 +87,58 @@ export default function UserDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!employeeId) return;
-    (async () => {
-      try {
-        const token = authService.getToken?.();
-        if (!token) return;
-        const r = await fetch(`${API_BASE}/time-entries/status`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!r.ok) return;
-        const st = await r.json(); 
-        setIsClockedIn(!!st?.clocked_in);
-      } catch {
+  if (!employeeId) return;
+  
+  // Limpiar inmediatamente si el estado pertenece a otro empleado
+  clockService.clearIfNotCurrentEmployee(employeeId);
+  
+  (async () => {
+    try {
+      const token = authService.getToken?.();
+      if (!token) return;
+      
+      // Verificar estado guardado después de la limpieza
+      const storedState = clockService.getClockState();
+      
+      // Si hay estado válido para este empleado, usarlo
+      if (storedState && clockService.isValidForEmployee(storedState, employeeId)) {
+        setIsClockedIn(storedState.isClockedIn);
+        return;
       }
-    })();
-  }, [employeeId]);
+      
+      // Consultar al servidor para el estado actual
+      const r = await fetch(`${API_BASE}/time-entries/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!r.ok) {
+        setIsClockedIn(false);
+        return;
+      }
+      
+      const st = await r.json(); 
+      const clockedIn = !!st?.clocked_in;
+      
+      setIsClockedIn(clockedIn);
+      
+      // Actualizar el estado local
+      if (clockedIn) {
+        clockService.setClockState({
+          isClockedIn: true,
+          clockInTime: new Date().toISOString(),
+          employeeId,
+          lastUpdated: ""
+        });
+      } else {
+        clockService.clearClockState();
+      }
+      
+    } catch (error) {
+      console.error('Error checking clock status:', error);
+      setIsClockedIn(false);
+    }
+  })();
+}, [employeeId]);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -184,6 +222,28 @@ export default function UserDashboard() {
     })();
     return () => ac.abort();
   }, [employeeId, timeRange, year, donutMonth]);
+
+  useEffect(() => {
+  if (employeeId) {
+    clockService.clearIfNotCurrentEmployee(employeeId);
+  }
+}, [employeeId]);
+
+// Efecto para limpiar estado obsoleto al cargar el componente
+useEffect(() => {
+  const storedState = clockService.getClockState();
+  if (storedState) {
+    const clockInDate = new Date(storedState.clockInTime || '');
+    const now = new Date();
+    const isToday = clockInDate.toDateString() === now.toDateString();
+    
+    // Limpiar si no es de hoy
+    if (!isToday) {
+      clockService.clearClockState();
+      setIsClockedIn(false);
+    }
+  }
+}, []);
 
   const rawSeries = useMemo(() => {
     if (!report) return [] as AnyObj[];
@@ -373,35 +433,73 @@ export default function UserDashboard() {
 
   /* --- Clock In/Out --- */
   const clockIn = async () => {
-    setLoadingClock(true); setError(null);
-    try {
-      const token = authService.getToken?.();
-      if (!token) throw new Error("No authentication token found");
-      const r = await fetch(`${API_BASE}/time-entries/clock-in`, {
-        method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ tz: TZ }),
-      });
-      if (!r.ok) throw new Error(`Error ${r.status}`);
-      setIsClockedIn(true);
-    } catch (e: any) { setError(e?.message ?? "Error"); }
-    finally { setLoadingClock(false); }
-  };
-  const clockOut = async () => {
-    setLoadingClock(true); setError(null);
-    try {
-      const token = authService.getToken?.();
-      if (!token) throw new Error("No authentication token found");
-      const r = await fetch(`${API_BASE}/time-entries/clock-out`, {
-        method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      });
-      if (!r.ok) throw new Error(`Error ${r.status}`);
-      setIsClockedIn(false);
-    } catch (e: any) { setError(e?.message ?? "Error"); }
-    finally { setLoadingClock(false); }
-  };
+  setLoadingClock(true); 
+  setError(null);
+  
+  try {
+    const token = authService.getToken?.();
+    if (!token) throw new Error("No authentication token found");
+    
+    const r = await fetch(`${API_BASE}/time-entries/clock-in`, {
+      method: "POST",
+      headers: { 
+        Accept: "application/json", 
+        "Content-Type": "application/json", 
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify({ tz: TZ }),
+    });
+    
+    if (!r.ok) throw new Error(`Error ${r.status}`);
+    
+    setIsClockedIn(true);
+    
+    // Guardar estado con el employeeId actual
+    clockService.setClockState({
+      isClockedIn: true,
+      clockInTime: new Date().toISOString(),
+      employeeId,
+      lastUpdated: ""
+    });
+    
+  } catch (e: any) { 
+    setError(e?.message ?? "Error"); 
+  } finally { 
+    setLoadingClock(false); 
+  }
+};
+
+const clockOut = async () => {
+  setLoadingClock(true); 
+  setError(null);
+  
+  try {
+    const token = authService.getToken?.();
+    if (!token) throw new Error("No authentication token found");
+    
+    const r = await fetch(`${API_BASE}/time-entries/clock-out`, {
+      method: "POST",
+      headers: { 
+        Accept: "application/json", 
+        "Content-Type": "application/json", 
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify({}),
+    });
+    
+    if (!r.ok) throw new Error(`Error ${r.status}`);
+    
+    setIsClockedIn(false);
+    
+    // Limpiar el estado
+    clockService.clearClockState();
+    
+  } catch (e: any) { 
+    setError(e?.message ?? "Error"); 
+  } finally { 
+    setLoadingClock(false); 
+  }
+};
 
   /* --- Select styles --- */
   const btnBase = "rounded-lg transition-all duration-300 hover:scale-105";
