@@ -1,196 +1,441 @@
-import { Card, Title, DonutChart, BarChart, Flex, Button, Metric, Text, Divider } from "@tremor/react";
-import { useEffect, useState } from "react";
+import {
+  Card, Title, DonutChart, BarChart, Flex, Button, Metric, Text, Divider,
+  Select, SelectItem
+} from "@tremor/react";
+import { useEffect, useMemo, useState } from "react";
 import { authService } from "../services/auth-service";
 
-const hoursData = [
-  { name: "Horas trabajadas", value: 35 },
-  { name: "Horas libres", value: 13 },
-];
+const TZ = "America/Bogota";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
-const weeklyEarningsData = [
-  { day: "Lun", hours: 6, earnings: 180 },
-  { day: "Mar", hours: 7, earnings: 210 },
-  { day: "Mié", hours: 8, earnings: 240 },
-  { day: "Jue", hours: 5, earnings: 150 },
-  { day: "Vie", hours: 9, earnings: 270 },
-  { day: "Sáb", hours: 0, earnings: 0 },
-  { day: "Dom", hours: 0, earnings: 0 },
-];
+const moneyCO = (n: number) => (n ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 0 });
+const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-const monthlyEarningsData = [
-  { month: "Ene", hours: 120, earnings: 3600 },
-  { month: "Feb", hours: 140, earnings: 4200 },
-  { month: "Mar", hours: 160, earnings: 4800 },
-  { month: "Abr", hours: 110, earnings: 3300 },
-  { month: "May", hours: 135, earnings: 4050 },
-  { month: "Jun", hours: 170, earnings: 5100 },
-];
+function monthNameLong(m1: number) {
+  return new Date(0, m1 - 1).toLocaleString("es-CO", { month: "long" });
+}
+function firstSundayOfWeek(ref: Date) {
+  const d = new Date(ref);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay()); 
+  return d;
+}
 
+function todayLocal() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseAsLocalDate(raw: string): Date {
+  if (!raw) return new Date(NaN);
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  return new Date(raw);
+}
+const stripTime = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const daysDiff = (a: Date, b: Date) =>
+  Math.floor((stripTime(a).getTime() - stripTime(b).getTime()) / 86400000);
+
+type AnyObj = Record<string, any>;
+type EmployeeReport = AnyObj;
 
 export default function UserDashboard() {
-  const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
-  const [isClockedIn, setIsClockedIn] = useState(false);
-  const [currentTimeEntryId, setCurrentTimeEntryId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>(''); 
-  const [userData, setUserData] = useState<any>(null);
+  const [timeRange, setTimeRange] = useState<"week" | "month">("week");
 
+  const [refDate, setRefDate] = useState<string>(() => todayLocal());
+
+  const today = new Date();
+  const [year, setYear] = useState<number>(today.getFullYear());
+  const [donutMonth, setDonutMonth] = useState<number>(today.getMonth() + 1); // 1..12
+
+  const [userName, setUserName] = useState<string>("");
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [employeeRate, setEmployeeRate] = useState<number>(0);
+
+  const [isClockedIn, setIsClockedIn] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [loadingClock, setLoadingClock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Reportes
+  const [report, setReport] = useState<EmployeeReport | null>(null);                
+  const [donutMonthReport, setDonutMonthReport] = useState<EmployeeReport | null>(null); 
+
+  /* --- Perfil --- */
   useEffect(() => {
-    loadUserData();
+    (async () => {
+      try {
+        const cached = authService.getUserData?.();
+        let profile = cached;
+        if (!profile) {
+          profile = await authService.getEmployeeProfile();
+          if (profile) localStorage.setItem("userData", JSON.stringify(profile));
+        }
+        if (profile) {
+          setUserName(profile.full_name ?? profile.email ?? "Usuario");
+          setEmployeeId(profile.id ?? profile.employee_id ?? null);
+          const r = Number(profile.hourly_rate ?? profile.rate ?? 0);
+          setEmployeeRate(isFinite(r) ? r : 0);
+        }
+      } catch (e) { console.error(e); }
+    })();
   }, []);
 
-  const loadUserData = () => {
-    const userData = authService.getUserData();
-    const userName = authService.getUserName();
-    
-    setUserData(userData);
-    setUserName(userName);
-    
-    if (!userData) {
-      fetchUserData();
-    }
-  };
-
-  const fetchUserData = async () => {
-    try {
-      const userProfile = await authService.getEmployeeProfile();
-      setUserData(userProfile);
-      
-      if (userProfile?.full_name) {
-        setUserName(userProfile.full_name);
-        localStorage.setItem('userData', JSON.stringify(userProfile));
+  useEffect(() => {
+    if (!employeeId) return;
+    (async () => {
+      try {
+        const token = authService.getToken?.();
+        if (!token) return;
+        const r = await fetch(`${API_BASE}/time-entries/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!r.ok) return;
+        const st = await r.json(); 
+        setIsClockedIn(!!st?.clocked_in);
+      } catch {
       }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
+    })();
+  }, [employeeId]);
+
+  useEffect(() => {
+    if (!employeeId) return;
+    const ac = new AbortController();
+    (async () => {
+      setLoadingReport(true);
+      setError(null);
+      try {
+        const token = authService.getToken?.();
+        if (!token) throw new Error("No authentication token found");
+
+        let url = `${API_BASE}/reports/employee/${employeeId}`;
+        if (timeRange === "week") {
+          const refIso = `${refDate}T00:00:00`;
+          const qs = new URLSearchParams({ timezone: TZ, ref_date: refIso });
+          url += `/weekly?${qs.toString()}`;
+        } else {
+          const qs = new URLSearchParams({ year: String(year), timezone: TZ });
+          url += `/yearly?${qs.toString()}`; 
+        }
+
+        const resp = await fetch(url, {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          signal: ac.signal,
+        });
+        if (!resp.ok) {
+          if (resp.status === 401) throw new Error("Autenticación fallida. Inicia sesión de nuevo.");
+          throw new Error(`Error del servidor: ${resp.status}`);
+        }
+        const data: EmployeeReport = await resp.json();
+        setReport(data);
+
+        const r = Number(data?.employee?.hourly_rate ?? data?.employee?.rate ?? employeeRate);
+        if (isFinite(r) && r > 0) setEmployeeRate(r);
+      } catch (e: any) {
+        if (e?.name !== "AbortError") {
+          setError(e?.message ?? "Ocurrió un error desconocido");
+          setReport(null);
+        }
+      } finally {
+        setLoadingReport(false);
+      }
+    })();
+    return () => ac.abort();
+  }, [employeeId, timeRange, refDate, year]);
+
+  useEffect(() => {
+    if (!employeeId || timeRange !== "month" || !donutMonth) {
+      setDonutMonthReport(null);
+      return;
     }
-  };
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const token = authService.getToken?.();
+        if (!token) throw new Error("No authentication token found");
+        const qs = new URLSearchParams({
+          year: String(year),
+          month: String(donutMonth),
+          timezone: TZ,
+        });
+        const url = `${API_BASE}/reports/employee/${employeeId}/monthly?${qs.toString()}`;
+        const resp = await fetch(url, {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          signal: ac.signal,
+        });
+        if (!resp.ok) { setDonutMonthReport(null); return; }
+        const data: EmployeeReport = await resp.json();
+        setDonutMonthReport(data);
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setDonutMonthReport(null);
+      }
+    })();
+    return () => ac.abort();
+  }, [employeeId, timeRange, year, donutMonth]);
 
-  const totalHours = hoursData.reduce((acc, curr) => acc + curr.value, 0);
-  const currentData = timeRange === 'week' ? weeklyEarningsData : monthlyEarningsData;
-  const totalEarnings = currentData.reduce((acc, curr) => acc + curr.earnings, 0);
-  const totalWorkedHours = currentData.reduce((acc, curr) => acc + curr.hours, 0);
-  const avgHourlyRate = totalWorkedHours > 0 ? totalEarnings / totalWorkedHours : 0;
+  const rawSeries = useMemo(() => {
+    if (!report) return [] as AnyObj[];
+    const candidates: AnyObj[] = [];
+    const pushIf = (v: any) => {
+      if (!v) return;
+      if (Array.isArray(v)) { if (v.length) candidates.push(v); }
+      else if (typeof v === "object" && Object.keys(v).length) candidates.push(v);
+    };
+    pushIf(report.bars);
+    pushIf(report.days);
+    pushIf(report.daily);
+    pushIf(report.series);
+    pushIf(report.data);
+    pushIf(report.by_day);
+    pushIf(report.by_date);
+    pushIf(report.months);
+    pushIf(report.by_month);
+    pushIf(report.bar_by_day); 
 
+    let rows: AnyObj[] = [];
+    for (const c of candidates) {
+      if (Array.isArray(c)) { rows = c; break; }
+      if (typeof c === "object") {
+        rows = Object.entries(c).map(([k, v]: any) => ({ ...(v || {}), date: k }));
+        break;
+      }
+    }
+    return rows;
+  }, [report]);
 
+  const rawEntries = useMemo(() => {
+    const entries = (report?.entries ?? report?.time_entries ?? []) as any[];
+    return Array.isArray(entries) ? entries : [];
+  }, [report]);
+
+  const barWeekly = useMemo(() => {
+    const ref = new Date(refDate + "T00:00:00");
+    const weekStart = stripTime(firstSundayOfWeek(ref));
+    const base = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      return { label: DAYS_ES[i], _date: d, hours: 0, pay_total: 0 };
+    });
+
+    let usedSeries = false;
+
+    for (const r of rawSeries) {
+      const raw = r?.date ?? r?.day ?? r?.ts ?? r?.label;
+      if (!raw) continue;
+      const d = parseAsLocalDate(raw);
+      if (isNaN(d.getTime())) continue;
+
+      const idx = daysDiff(d, weekStart); 
+      if (idx < 0 || idx > 6) continue;
+
+      const hours = Number(
+        r?.hours ?? r?.total ?? r?.hours_total ??
+        (r?.diurnal ?? 0) + (r?.nocturnal ?? 0) + (r?.extra ?? 0)
+      ) || 0;
+
+      base[idx].hours += hours;
+      if (Number.isFinite(r?.pay_total)) base[idx].pay_total += Number(r.pay_total);
+      usedSeries = true;
+    }
+    if (!usedSeries && rawEntries.length) {
+      const msPerDay = 24 * 60 * 60 * 1000;
+      for (const e of rawEntries) {
+        const ci = new Date(e?.clock_in ?? e?.start_time ?? e?.start);
+        const co = new Date(e?.clock_out ?? e?.end_time ?? e?.end);
+        if (!ci || !co || isNaN(ci.getTime()) || isNaN(co.getTime())) continue;
+
+        let start = ci.getTime();
+        let end = Math.max(co.getTime(), start);
+
+        while (start < end) {
+          const startDate = new Date(start);
+          const dayStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+          const nextMidnight = dayStart + msPerDay;
+          const segmentEnd = Math.min(end, nextMidnight);
+
+          const idx = daysDiff(new Date(dayStart), weekStart);
+          const hours = Math.max(0, (segmentEnd - start) / 36e5);
+
+          if (idx >= 0 && idx <= 6) base[idx].hours += hours;
+
+          start = segmentEnd;
+        }
+      }
+    }
+
+    return base.map(({ label, hours, pay_total }) => ({
+      label,
+      hours: Number(hours.toFixed(2)),
+      pay_total: Number(pay_total || 0),
+    }));
+  }, [rawSeries, rawEntries, refDate]);
+
+  const barYear = useMemo(() => {
+    const base = MONTHS_SHORT.map((m) => ({ label: m, hours: 0 }));
+    for (const r of rawSeries) {
+      let mIndex = -1;
+      if (typeof r?.month === "number") {
+        mIndex = r.month - 1;
+      } else {
+        const raw = r?.date ?? r?.label ?? r?.ts;
+        if (raw) {
+          const d = parseAsLocalDate(raw);
+          if (!isNaN(d.getTime()) && (!r?.year || Number(r?.year) === year)) mIndex = d.getMonth();
+        }
+      }
+      if (mIndex < 0 || mIndex > 11) continue;
+      const hours = Number(
+        r?.hours ?? r?.total ?? r?.hours_total ??
+        (r?.diurnal ?? 0) + (r?.nocturnal ?? 0) + (r?.extra ?? 0)
+      ) || 0;
+      base[mIndex].hours += hours;
+    }
+    return base.map(r => ({ ...r, hours: Number(r.hours.toFixed(2)) }));
+  }, [rawSeries, year]);
+
+  const donutData = useMemo(() => {
+    const extract = (rep: EmployeeReport | null) => {
+      if (!rep) return { diurnal: 0, nocturnal: 0, extra: 0, total: 0 };
+      const src = rep?.pie_hours ?? rep?.totals?.hours ?? {};
+      const diurnal   = Number(src?.diurnal ?? 0);
+      const nocturnal = Number(src?.nocturnal ?? 0);
+      const extra     = Number(src?.extra ?? 0);
+      const total =
+        Number(rep?.pie_hours?.total ?? rep?.totals?.hours_total ?? diurnal + nocturnal + extra);
+      return { diurnal, nocturnal, extra, total };
+    };
+
+    if (timeRange === "week") {
+      const { diurnal, nocturnal, extra, total } = extract(report);
+      const parts = [
+        { name: "Diurnas", value: diurnal },
+        { name: "Nocturnas", value: nocturnal },
+        { name: "Extra", value: extra },
+      ].filter(p => p.value > 0);
+      return parts.length ? parts : (total > 0 ? [{ name: "Horas", value: total }] : []);
+    }
+
+    const { diurnal, nocturnal, extra, total } = extract(donutMonthReport);
+    const parts = [
+      { name: "Diurnas", value: diurnal },
+      { name: "Nocturnas", value: nocturnal },
+      { name: "Extra", value: extra },
+    ].filter(p => p.value > 0);
+    return parts.length ? parts : (total > 0 ? [{ name: "Horas", value: total }] : []);
+  }, [timeRange, report, donutMonthReport]);
+
+  const headTotals = useMemo(() => {
+    const t = report?.totals ?? {};
+    const hours_total =
+      Number.isFinite(t?.hours_total) ? Number(t.hours_total)
+      : Number.isFinite(t?.hours?.total) ? Number(t.hours.total)
+      : 0;
+    const pay_total = Number.isFinite(t?.pay_total) ? Number(t.pay_total) : 0;
+    return { hours_total, pay_total };
+  }, [report]);
+
+  const barData = timeRange === "week" ? barWeekly : barYear;
+  const totalHoursFromBars = barData.reduce((a, r: any) => a + (Number(r.hours) || 0), 0);
+
+  const monthTotals = useMemo(() => {
+    const t = donutMonthReport?.totals ?? {};
+    return {
+      hours_total: Number(donutMonthReport?.pie_hours?.total ?? t?.hours_total ?? 0) || 0,
+      pay_total: Number(t?.pay_total ?? 0) || 0,
+    };
+  }, [donutMonthReport]);
+
+  const totalHours =
+    timeRange === "month"
+      ? monthTotals.hours_total
+      : (headTotals.hours_total && headTotals.hours_total > 0
+          ? headTotals.hours_total
+          : totalHoursFromBars);
+
+  const totalEarnings =
+    timeRange === "month"
+      ? monthTotals.pay_total
+      : Number(headTotals.pay_total) || 0;
+
+  const avgHourlyRate = employeeRate || Number(report?.employee?.hourly_rate ?? 0) || 0;
+
+  /* --- Clock In/Out --- */
   const clockIn = async () => {
-    setLoading(true);
-    setError(null);
-
+    setLoadingClock(true); setError(null);
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const response = await fetch('http://127.0.0.1:8000/time-entries/clock-in', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          tz: "America/Bogota"
-        })
+      const token = authService.getToken?.();
+      if (!token) throw new Error("No authentication token found");
+      const r = await fetch(`${API_BASE}/time-entries/clock-in`, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tz: TZ }),
       });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Authentication failed. Please log in again.");
-        }
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      if (!r.ok) throw new Error(`Error ${r.status}`);
       setIsClockedIn(true);
-      setCurrentTimeEntryId(data.id);
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
-      console.error("Clock-in error:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: any) { setError(e?.message ?? "Error"); }
+    finally { setLoadingClock(false); }
   };
-
   const clockOut = async () => {
-    setLoading(true);
-    setError(null);
-    
+    setLoadingClock(true); setError(null);
     try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const response = await fetch('http://127.0.0.1:8000/time-entries/clock-out', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({})
+      const token = authService.getToken?.();
+      if (!token) throw new Error("No authentication token found");
+      const r = await fetch(`${API_BASE}/time-entries/clock-out`, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
       });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error("Authentication failed. Please log in again.");
-        }
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      if (!r.ok) throw new Error(`Error ${r.status}`);
       setIsClockedIn(false);
-      setCurrentTimeEntryId(null);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
-      console.error("Clock-out error:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: any) { setError(e?.message ?? "Error"); }
+    finally { setLoadingClock(false); }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  /* --- Select styles --- */
+  const btnBase = "rounded-lg transition-all duration-300 hover:scale-105";
+  const active = "bg-blue-600 text-white hover:scale-105";
+  const inactive = "bg-white border border-gray-300 text-gray-800";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-3xl font-bold text-gray-800">Panel de Usuario</h1>
-              <p className="text-gray-600 mt-2">Resumen de tu actividad y ganancias</p>
+              <p className="text-gray-600 mt-2">
+                {error ? <span className="text-red-600">{error}</span> : "Resumen de tu actividad y ganancias"}
+              </p>
             </div>
             <div className="hidden md:flex items-center space-x-4">
               <div className="flex space-x-2">
                 <Button
                   size="lg"
-                  variant={isClockedIn ? "secondary" : "primary"}
                   onClick={clockIn}
-                  disabled={isClockedIn || loading}
-                  loading={loading && !isClockedIn}
-                  className="bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105"
+                  disabled={isClockedIn || loadingClock}
+                  loading={loadingClock && !isClockedIn}
+                  className={`bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105 ${isClockedIn ? "opacity-70" : ""}`}
                 >
                   {isClockedIn ? "Registro Iniciado" : "Clock-In"}
                 </Button>
                 <Button
                   size="lg"
-                  variant={isClockedIn ? "primary" : "secondary"}
                   onClick={clockOut}
-                  disabled={!isClockedIn || loading}
-                  loading={loading && isClockedIn}
-                  className="bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105"
+                  disabled={!isClockedIn || loadingClock}
+                  loading={loadingClock && isClockedIn}
+                  className={`bg-pandora-yellow rounded-lg transition-all duration-300 hover:scale-105 ${!isClockedIn ? "opacity-70" : ""}`}
                 >
                   Clock-Out
                 </Button>
@@ -198,17 +443,14 @@ export default function UserDashboard() {
               <div className="flex items-center space-x-3 text-right">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-700">Bienvenido</p>
-                  <p className="text-lg font-semibold text-gray-900">{userName}</p>
+                  <p className="text-lg font-semibold text-gray-900">{userName || "Usuario"}</p>
                 </div>
-  
               </div>
-
             </div>
           </div>
           <Divider />
         </div>
 
-        {/* Resumen de métricas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="rounded-xl shadow-lg border-0 bg-white" decoration="top" decorationColor="blue">
             <Flex justifyContent="start" className="space-x-4">
@@ -219,7 +461,7 @@ export default function UserDashboard() {
               </div>
               <div>
                 <Text>Total Horas</Text>
-                <Metric className="text-gray-800">{totalHours} hrs</Metric>
+                <Metric className="text-gray-800">{(totalHours || 0).toFixed(2)} hrs</Metric>
               </div>
             </Flex>
           </Card>
@@ -233,7 +475,7 @@ export default function UserDashboard() {
               </div>
               <div>
                 <Text>Ganancias Totales</Text>
-                <Metric className="text-gray-800">${totalEarnings.toLocaleString()}</Metric>
+                <Metric className="text-gray-800">${moneyCO(totalEarnings)}</Metric>
               </div>
             </Flex>
           </Card>
@@ -247,79 +489,146 @@ export default function UserDashboard() {
               </div>
               <div>
                 <Text>Tarifa Promedio</Text>
-                <Metric className="text-gray-800">${avgHourlyRate.toFixed(2)}/hr</Metric>
+                <Metric className="text-gray-800">${(isFinite(avgHourlyRate) ? avgHourlyRate : 0).toFixed(2)}/hr</Metric>
               </div>
             </Flex>
           </Card>
         </div>
-
-        {/* Selector de rango de tiempo */}
         <Card className="rounded-xl shadow-lg border-0 bg-white mb-8">
           <Title className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Rango de Tiempo</Title>
-          <Flex justifyContent="center" className="gap-4">
-            <Button
-              size="xl"
-              variant={timeRange === 'week' ? 'primary' : 'secondary'}
-              onClick={() => setTimeRange('week')}
-              className="rounded-lg transition-all duration-300 hover:scale-105"
-            >
-              Semanal
-            </Button>
-            <Button
-              size="xl"
-              variant={timeRange === 'month' ? 'primary' : 'secondary'}
-              onClick={() => setTimeRange('month')}
-              className="rounded-lg transition-all duration-300 hover:scale-105"
-            >
-              Mensual
-            </Button>
-          </Flex>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <Flex justifyContent="start" className="gap-4">
+              <button
+                onClick={() => setTimeRange("week")}
+                className={`${btnBase} px-5 py-2 ${timeRange === "week" ? active : inactive}`}
+              >
+                Semanal
+              </button>
+              <button
+                onClick={() => setTimeRange("month")}
+                className={`${btnBase} px-5 py-2 ${timeRange === "month" ? active : inactive}`}
+              >
+                Mensual
+              </button>
+            </Flex>
+
+            {timeRange === "week" ? (
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-600 mb-1">Fecha de referencia (semana dom–sáb)</label>
+                <input
+                  type="date"
+                  className="border border-gray-300 rounded-lg px-3 py-2 shadow-sm hover:bg-blue-50 focus:bg-blue-100 outline-none"
+                  value={refDate}
+                  onChange={(e) => setRefDate(e.target.value)}
+                  max={todayLocal()}
+                />
+              </div>
+            ) : (
+              <div className="flex items-end gap-3">
+                <div className="flex flex-col min-w-36">
+                  <label className="text-xs text-gray-600 mb-1">Año</label>
+                  <Select
+                    value={String(year)}
+                    onValueChange={(v) => setYear(Number(v))}
+                    className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                  >
+                    {Array.from({ length: 6 }, (_, i) => {
+                      const y = new Date().getFullYear() - i;
+                      return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
+                    })}
+                  </Select>
+                </div>
+                <div className="flex flex-col min-w-44">
+                  <label className="text-xs text-gray-600 mb-1">Mes (solo pastel)</label>
+                  <Select
+                    value={String(donutMonth)}
+                    onValueChange={(v) => setDonutMonth(Number(v))}
+                    className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const m = i + 1;
+                      return (
+                        <SelectItem key={m} value={String(m)}>
+                          {String(m).padStart(2, "0")} — {MONTHS_SHORT[i]}
+                        </SelectItem>
+                      );
+                    })}
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Gráfico de donut (horas trabajadas) */}
           <Card className="rounded-xl shadow-lg border-0 bg-white">
-            <Title className="text-lg font-semibold text-gray-800 mb-4">Distribución de Horas</Title>
+            <div className="flex items-center justify-between">
+              <Title className="text-lg font-semibold text-gray-800 mb-4">Distribución de Horas</Title>
+            </div>
+
             <DonutChart
-              data={hoursData}
+              data={donutData}
               category="value"
               index="name"
               valueFormatter={(value) => `${value} hrs`}
-              colors={["blue", "indigo"]}
+              colors={["blue", "indigo", "violet"]}
               variant="donut"
               className="h-72"
-              showAnimation={true}
-              showTooltip={true}
+              showAnimation
+              showTooltip
             />
             <div className="mt-4 text-center text-sm text-gray-600">
-              Total: {totalHours} horas esta semana
+              {timeRange === "week" ? (
+                <>Total: {(totalHours || 0).toFixed(2)} horas esta semana</>
+              ) : (
+                <>
+                  Mes seleccionado: <b>{monthNameLong(donutMonth)}</b> · Año <b>{year}</b>
+                  <br />
+                  Total horas: <b>{monthTotals.hours_total.toFixed(2)}</b>
+                  {" · "}
+                  Total $$: <b>${moneyCO(monthTotals.pay_total)}</b>
+                </>
+              )}
             </div>
           </Card>
-
-          {/* Gráfico de barras (ganancias vs tiempo) */}
           <Card className="rounded-xl shadow-lg border-0 bg-white">
             <Title className="text-lg font-semibold text-gray-800 mb-4">
-              {timeRange === 'week' ? 'Ganancias Semanales' : 'Ganancias Mensuales'}
+              {timeRange === "week" ? "Horas Semanales (Dom–Sáb)" : "Horas por mes (Ene–Dic)"}
             </Title>
             <BarChart
-              data={currentData}
-              index={timeRange === 'week' ? 'day' : 'month'}
-              categories={['earnings']}
-              colors={['indigo', 'green', 'yellow', 'red']}
-              valueFormatter={(value) => `$${value}`}
-              yAxisWidth={60}
-              showAnimation={true}
+              data={timeRange === "week" ? barWeekly : barYear}
+              index="label"
+              categories={["hours"]}
+              colors={["indigo"]}
+              valueFormatter={(v) => `${Number(v || 0).toFixed(2)} h`}
+              customTooltip={(props: any) => {
+                const payload = props?.payload?.[0]?.payload;
+                if (!payload) return null;
+                const label = payload?.label ?? "";
+                const hours = Number(payload?.hours ?? 0).toFixed(2);
+                const pay = timeRange === "week" && Number(payload?.pay_total) > 0
+                  ? ` · $${moneyCO(Number(payload.pay_total))}`
+                  : "";
+                return (
+                  <div className="rounded-md bg-white px-3 py-2 text-sm shadow border border-gray-200">
+                    <div className="font-medium text-gray-800">{label}</div>
+                    <div className="text-gray-700">{hours} h{pay}</div>
+                  </div>
+                );
+              }}
+              yAxisWidth={70}
+              showAnimation
               className="h-72"
             />
             <div className="mt-4 text-center text-sm text-gray-600">
-              Total: ${totalEarnings.toLocaleString()} {timeRange === 'week' ? 'esta semana' : 'este mes'}
+              {timeRange === "week"
+                ? <>Total horas: {(totalHours || 0).toFixed(2)} · Total $$: ${moneyCO(totalEarnings)}</>
+                : <>Total horas año {year}: {(totalHours || 0).toFixed(2)}</>}
             </div>
           </Card>
         </div>
-
-        {/* Footer con información adicional */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Actualizado por última vez: {new Date().toLocaleDateString()}</p>
+          <p>Actualizado por última vez: {new Date().toLocaleDateString("es-CO")}</p>
         </div>
       </div>
     </div>
