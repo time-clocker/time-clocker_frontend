@@ -1,7 +1,4 @@
-import {
-  Card, Title, DonutChart, BarChart, Flex, Button, Metric, Text, Divider,
-  Select, SelectItem
-} from "@tremor/react";
+import { Card, Title, DonutChart, Flex, Button, Metric, Text, Divider, Select, SelectItem } from "@tremor/react";
 import { useEffect, useMemo, useState } from "react";
 import { authService } from "../services/auth-service";
 import { clockService } from "../services/clock-service";
@@ -10,8 +7,9 @@ const TZ = "America/Bogota";
 const API_BASE = import.meta.env.VITE_API_BASE ?? "https://time-clocker-backend.onrender.com";
 
 const moneyCO = (n: number) => (n ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 0 });
-const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MONTHS_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const BAR_COLORS = ["#008037","#E0AF00","#10b981","#3b82f6","#8b5cf6","#f43f5e","#f97316","#14b8a6","#ec4899"];
 
 function monthNameLong(m1: number) {
   return new Date(0, m1 - 1).toLocaleString("es-CO", { month: "long" });
@@ -368,9 +366,9 @@ export default function UserDashboard() {
     const extract = (rep: EmployeeReport | null) => {
       if (!rep) return { diurnal: 0, nocturnal: 0, extra: 0, total: 0 };
       const src = rep?.pie_hours ?? rep?.totals?.hours ?? {};
-      const diurnal   = Number(src?.diurnal ?? 0);
+      const diurnal = Number(src?.diurnal ?? 0);
       const nocturnal = Number(src?.nocturnal ?? 0);
-      const extra     = Number(src?.extra ?? 0);
+      const extra = Number(src?.extra ?? 0);
       const total =
         Number(rep?.pie_hours?.total ?? rep?.totals?.hours_total ?? diurnal + nocturnal + extra);
       return { diurnal, nocturnal, extra, total };
@@ -399,8 +397,8 @@ export default function UserDashboard() {
     const t = report?.totals ?? {};
     const hours_total =
       Number.isFinite(t?.hours_total) ? Number(t.hours_total)
-      : Number.isFinite(t?.hours?.total) ? Number(t.hours.total)
-      : 0;
+        : Number.isFinite(t?.hours?.total) ? Number(t.hours.total)
+          : 0;
     const pay_total = Number.isFinite(t?.pay_total) ? Number(t.pay_total) : 0;
     return { hours_total, pay_total };
   }, [report]);
@@ -420,8 +418,8 @@ export default function UserDashboard() {
     timeRange === "month"
       ? monthTotals.hours_total
       : (headTotals.hours_total && headTotals.hours_total > 0
-          ? headTotals.hours_total
-          : totalHoursFromBars);
+        ? headTotals.hours_total
+        : totalHoursFromBars);
 
   const totalEarnings =
     timeRange === "month"
@@ -430,7 +428,6 @@ export default function UserDashboard() {
 
   const avgHourlyRate = employeeRate || Number(report?.employee?.hourly_rate ?? 0) || 0;
 
-  /* --- Clock In/Out --- */
   const clockIn = async () => {
     setLoadingClock(true);
     setError(null);
@@ -453,7 +450,6 @@ export default function UserDashboard() {
 
       setIsClockedIn(true);
 
-      // Guardar estado con el employeeId actual
       clockService.setClockState({
         isClockedIn: true,
         clockInTime: new Date().toISOString(),
@@ -489,10 +485,7 @@ export default function UserDashboard() {
       if (!r.ok) throw new Error(`Error ${r.status}`);
 
       setIsClockedIn(false);
-
-      // Limpiar el estado
       clockService.clearClockState();
-
     } catch (e: any) {
       setError(e?.message ?? "Error");
     } finally {
@@ -501,25 +494,36 @@ export default function UserDashboard() {
   };
 
   const formatUserName = (name: string | null) => {
-  if (!name || name === "Usuario") return "Usuario";
-  
-  const parts = name.split(' ');
-  
-  // Si el nombre tiene 3 palabras o menos, mostrarlo completo en una línea
-  if (parts.length <= 3) return name;
-  
-  // Para nombres con más de 3 palabras, dividir después de la segunda palabra
-  return (
-    <>
-      <div>{parts.slice(0, 2).join(' ')}</div>
-      <div>{parts.slice(2).join(' ')}</div>
-    </>
-  );
-};
+    if (!name || name === "Usuario") return "Usuario";
 
-  /* --- Select styles --- */
+    const parts = name.split(' ');
+    if (parts.length <= 3) return name;
+    return (
+      <>
+        <div>{parts.slice(0, 2).join(' ')}</div>
+        <div>{parts.slice(2).join(' ')}</div>
+      </>
+    );
+  };
+
+  const barWeeklyForBarList = useMemo(() => {
+    return barWeekly.map((item, index) => ({
+      name: item.label,
+      value: item.hours,
+      color: BAR_COLORS[index % BAR_COLORS.length]
+    }));
+  }, [barWeekly]);
+
+  const barYearForBarList = useMemo(() => {
+    return barYear.map((item, index) => ({
+      name: item.label,
+      value: item.hours,
+      color: BAR_COLORS[index % BAR_COLORS.length]
+    }));
+  }, [barYear]);
+
   const btnBase = "rounded-lg transition-all duration-300 hover:scale-105";
-  const active = "bg-blue-600 text-white hover:scale-105";
+  const active = "bg-pandora-yellow hover:bg-pandora-yellow-dark text-white hover:scale-105";
   const inactive = "bg-white border border-gray-300 text-gray-800";
 
   return (
@@ -527,13 +531,34 @@ export default function UserDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">Panel de Usuario</h1>
-              <p className="text-gray-600 mt-2">
-                {error ? <span className="text-red-600">{error}</span> : "Resumen de tu actividad y ganancias"}
-              </p>
+            <div className="flex items-center gap-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-gray-700"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">Panel de Usuario</h1>
+                <p className="text-gray-600 mt-2">
+                  {error ? (
+                    <span className="text-red-600">{error}</span>
+                  ) : (
+                    "Resumen de tu actividad y ganancias"
+                  )}
+                </p>
+              </div>
             </div>
-             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   size="lg"
@@ -686,7 +711,7 @@ export default function UserDashboard() {
               category="value"
               index="name"
               valueFormatter={(value) => `${value} hrs`}
-              colors={["blue", "indigo", "violet"]}
+              colors={["amber", "slate", "emerald", "teal", "blue", "indigo", "violet", "pink", "rose", "red",]}
               variant="donut"
               className="h-72"
               showAnimation
@@ -711,41 +736,50 @@ export default function UserDashboard() {
             <Title className="text-lg font-semibold text-gray-800 mb-4">
               {timeRange === "week" ? "Horas Semanales (Dom–Sáb)" : "Horas por mes (Ene–Dic)"}
             </Title>
-            <BarChart
-              data={timeRange === "week" ? barWeekly : barYear}
-              index="label"
-              categories={["hours"]}
-              colors={["indigo"]}
-              valueFormatter={(v) => `${Number(v || 0).toFixed(2)} h`}
-              customTooltip={(props: any) => {
-                const payload = props?.payload?.[0]?.payload;
-                if (!payload) return null;
-                const label = payload?.label ?? "";
-                const hours = Number(payload?.hours ?? 0).toFixed(2);
-                const pay = timeRange === "week" && Number(payload?.pay_total) > 0
-                  ? ` · $${moneyCO(Number(payload.pay_total))}`
-                  : "";
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {(timeRange === "week" ? barWeeklyForBarList : barYearForBarList).map((item, index) => {
+                const max = Math.max(...(timeRange === "week" ? barWeeklyForBarList : barYearForBarList).map(i => i.value));
+                const width = max > 0 ? (item.value / max) * 100 : 0;
+
                 return (
-                  <div className="rounded-md bg-white px-3 py-2 text-sm shadow border border-gray-200">
-                    <div className="font-medium text-gray-800">{label}</div>
-                    <div className="text-gray-700">{hours} h{pay}</div>
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700 w-12">{item.name}</span>
+                    <div className="flex-1 mx-3">
+                      <div
+                        className="h-4 rounded"
+                        style={{
+                          width: `${width}%`,
+                          backgroundColor: item.color,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 w-16 text-right">
+                      {Number(item.value || 0).toFixed(2)} h
+                    </span>
                   </div>
                 );
-              }}
-              yAxisWidth={70}
-              showAnimation
-              className="h-72"
-            />
-            <div className="mt-4 text-center text-sm text-gray-600">
-              {timeRange === "week"
-                ? <>Total horas: {(totalHours || 0).toFixed(2)} · Total $$: ${moneyCO(totalEarnings)}</>
-                : <>Total horas año {year}: {(totalHours || 0).toFixed(2)}</>}
+              })}
+
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex justify-between items-center text-sm">
+                  <Text className="text-gray-600">Total horas:</Text>
+                  <Text className="font-semibold">{(totalHours || 0).toFixed(2)} hrs</Text>
+                </div>
+                {timeRange === "week" && (
+                  <div className="flex justify-between items-center text-sm">
+                    <Text className="text-gray-600">Total ganancias:</Text>
+                    <Text className="font-semibold text-green-600">${moneyCO(totalEarnings)}</Text>
+                  </div>
+                )}
+              </div>
             </div>
           </Card>
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Actualizado por última vez: {new Date().toLocaleDateString("es-CO")}</p>
+          <p>© 2025 Pandora Restaurante, Inc. All rights reserved.</p>
+          <p>Desarrollado por JDT Software</p>
         </div>
       </div>
     </div>

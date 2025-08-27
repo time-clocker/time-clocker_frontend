@@ -147,11 +147,15 @@ export default function AuthPage() {
           </div>
         </Card>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
+        <div className="mt-6 text-center text-ml text-black">
           <p>
             Al {isLogin ? "iniciar sesión" : "registrarte"}, aceptas nuestros
             Términos y Condiciones
           </p>
+        </div>
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>© 2025 Pandora Restaurante, Inc. All rights reserved.</p>
+          <p>Desarrollado por JDT Software</p>
         </div>
       </div>
     </div>
