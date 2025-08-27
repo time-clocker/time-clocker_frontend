@@ -19,7 +19,7 @@ function monthNameLong(m1: number) {
 function firstSundayOfWeek(ref: Date) {
   const d = new Date(ref);
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - d.getDay()); 
+  d.setDate(d.getDate() - d.getDay());
   return d;
 }
 
@@ -58,13 +58,13 @@ export default function UserDashboard() {
   const [employeeRate, setEmployeeRate] = useState<number>(0);
 
   const [isClockedIn, setIsClockedIn] = useState(false);
-  const [loadingReport, setLoadingReport] = useState(false);
+  const [, setLoadingReport] = useState(false); // ← corrección: omitimos la variable no usada
   const [loadingClock, setLoadingClock] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Reportes
-  const [report, setReport] = useState<EmployeeReport | null>(null);                
-  const [donutMonthReport, setDonutMonthReport] = useState<EmployeeReport | null>(null); 
+  const [report, setReport] = useState<EmployeeReport | null>(null);
+  const [donutMonthReport, setDonutMonthReport] = useState<EmployeeReport | null>(null);
 
   /* --- Perfil --- */
   useEffect(() => {
@@ -87,58 +87,58 @@ export default function UserDashboard() {
   }, []);
 
   useEffect(() => {
-  if (!employeeId) return;
-  
-  // Limpiar inmediatamente si el estado pertenece a otro empleado
-  clockService.clearIfNotCurrentEmployee(employeeId);
-  
-  (async () => {
-    try {
-      const token = authService.getToken?.();
-      if (!token) return;
-      
-      // Verificar estado guardado después de la limpieza
-      const storedState = clockService.getClockState();
-      
-      // Si hay estado válido para este empleado, usarlo
-      if (storedState && clockService.isValidForEmployee(storedState, employeeId)) {
-        setIsClockedIn(storedState.isClockedIn);
-        return;
-      }
-      
-      // Consultar al servidor para el estado actual
-      const r = await fetch(`${API_BASE}/time-entries/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!r.ok) {
-        setIsClockedIn(false);
-        return;
-      }
-      
-      const st = await r.json(); 
-      const clockedIn = !!st?.clocked_in;
-      
-      setIsClockedIn(clockedIn);
-      
-      // Actualizar el estado local
-      if (clockedIn) {
-        clockService.setClockState({
-          isClockedIn: true,
-          clockInTime: new Date().toISOString(),
-          employeeId,
-          lastUpdated: ""
+    if (!employeeId) return;
+
+    // Limpiar inmediatamente si el estado pertenece a otro empleado
+    clockService.clearIfNotCurrentEmployee(employeeId);
+
+    (async () => {
+      try {
+        const token = authService.getToken?.();
+        if (!token) return;
+
+        // Verificar estado guardado después de la limpieza
+        const storedState = clockService.getClockState();
+
+        // Si hay estado válido para este empleado, usarlo
+        if (storedState && clockService.isValidForEmployee(storedState, employeeId)) {
+          setIsClockedIn(storedState.isClockedIn);
+          return;
+        }
+
+        // Consultar al servidor para el estado actual
+        const r = await fetch(`${API_BASE}/time-entries/status`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-      } else {
-        clockService.clearClockState();
+
+        if (!r.ok) {
+          setIsClockedIn(false);
+          return;
+        }
+
+        const st = await r.json();
+        const clockedIn = !!st?.clocked_in;
+
+        setIsClockedIn(clockedIn);
+
+        // Actualizar el estado local
+        if (clockedIn) {
+          clockService.setClockState({
+            isClockedIn: true,
+            clockInTime: new Date().toISOString(),
+            employeeId,
+            lastUpdated: ""
+          });
+        } else {
+          clockService.clearClockState();
+        }
+
+      } catch (error) {
+        console.error('Error checking clock status:', error);
+        setIsClockedIn(false);
       }
-      
-    } catch (error) {
-      console.error('Error checking clock status:', error);
-      setIsClockedIn(false);
-    }
-  })();
-}, [employeeId]);
+    })();
+  }, [employeeId]);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -157,7 +157,7 @@ export default function UserDashboard() {
           url += `/weekly?${qs.toString()}`;
         } else {
           const qs = new URLSearchParams({ year: String(year), timezone: TZ });
-          url += `/yearly?${qs.toString()}`; 
+          url += `/yearly?${qs.toString()}`;
         }
 
         const resp = await fetch(url, {
@@ -224,26 +224,26 @@ export default function UserDashboard() {
   }, [employeeId, timeRange, year, donutMonth]);
 
   useEffect(() => {
-  if (employeeId) {
-    clockService.clearIfNotCurrentEmployee(employeeId);
-  }
-}, [employeeId]);
-
-// Efecto para limpiar estado obsoleto al cargar el componente
-useEffect(() => {
-  const storedState = clockService.getClockState();
-  if (storedState) {
-    const clockInDate = new Date(storedState.clockInTime || '');
-    const now = new Date();
-    const isToday = clockInDate.toDateString() === now.toDateString();
-    
-    // Limpiar si no es de hoy
-    if (!isToday) {
-      clockService.clearClockState();
-      setIsClockedIn(false);
+    if (employeeId) {
+      clockService.clearIfNotCurrentEmployee(employeeId);
     }
-  }
-}, []);
+  }, [employeeId]);
+
+  // Efecto para limpiar estado obsoleto al cargar el componente
+  useEffect(() => {
+    const storedState = clockService.getClockState();
+    if (storedState) {
+      const clockInDate = new Date(storedState.clockInTime || '');
+      const now = new Date();
+      const isToday = clockInDate.toDateString() === now.toDateString();
+
+      // Limpiar si no es de hoy
+      if (!isToday) {
+        clockService.clearClockState();
+        setIsClockedIn(false);
+      }
+    }
+  }, []);
 
   const rawSeries = useMemo(() => {
     if (!report) return [] as AnyObj[];
@@ -262,7 +262,7 @@ useEffect(() => {
     pushIf(report.by_date);
     pushIf(report.months);
     pushIf(report.by_month);
-    pushIf(report.bar_by_day); 
+    pushIf(report.bar_by_day);
 
     let rows: AnyObj[] = [];
     for (const c of candidates) {
@@ -297,7 +297,7 @@ useEffect(() => {
       const d = parseAsLocalDate(raw);
       if (isNaN(d.getTime())) continue;
 
-      const idx = daysDiff(d, weekStart); 
+      const idx = daysDiff(d, weekStart);
       if (idx < 0 || idx > 6) continue;
 
       const hours = Number(
@@ -433,73 +433,73 @@ useEffect(() => {
 
   /* --- Clock In/Out --- */
   const clockIn = async () => {
-  setLoadingClock(true); 
-  setError(null);
-  
-  try {
-    const token = authService.getToken?.();
-    if (!token) throw new Error("No authentication token found");
-    
-    const r = await fetch(`${API_BASE}/time-entries/clock-in`, {
-      method: "POST",
-      headers: { 
-        Accept: "application/json", 
-        "Content-Type": "application/json", 
-        Authorization: `Bearer ${token}` 
-      },
-      body: JSON.stringify({ tz: TZ }),
-    });
-    
-    if (!r.ok) throw new Error(`Error ${r.status}`);
-    
-    setIsClockedIn(true);
-    
-    // Guardar estado con el employeeId actual
-    clockService.setClockState({
-      isClockedIn: true,
-      clockInTime: new Date().toISOString(),
-      employeeId,
-      lastUpdated: ""
-    });
-    
-  } catch (e: any) { 
-    setError(e?.message ?? "Error"); 
-  } finally { 
-    setLoadingClock(false); 
-  }
-};
+    setLoadingClock(true);
+    setError(null);
 
-const clockOut = async () => {
-  setLoadingClock(true); 
-  setError(null);
-  
-  try {
-    const token = authService.getToken?.();
-    if (!token) throw new Error("No authentication token found");
-    
-    const r = await fetch(`${API_BASE}/time-entries/clock-out`, {
-      method: "POST",
-      headers: { 
-        Accept: "application/json", 
-        "Content-Type": "application/json", 
-        Authorization: `Bearer ${token}` 
-      },
-      body: JSON.stringify({}),
-    });
-    
-    if (!r.ok) throw new Error(`Error ${r.status}`);
-    
-    setIsClockedIn(false);
-    
-    // Limpiar el estado
-    clockService.clearClockState();
-    
-  } catch (e: any) { 
-    setError(e?.message ?? "Error"); 
-  } finally { 
-    setLoadingClock(false); 
-  }
-};
+    try {
+      const token = authService.getToken?.();
+      if (!token) throw new Error("No authentication token found");
+
+      const r = await fetch(`${API_BASE}/time-entries/clock-in`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ tz: TZ }),
+      });
+
+      if (!r.ok) throw new Error(`Error ${r.status}`);
+
+      setIsClockedIn(true);
+
+      // Guardar estado con el employeeId actual
+      clockService.setClockState({
+        isClockedIn: true,
+        clockInTime: new Date().toISOString(),
+        employeeId,
+        lastUpdated: ""
+      });
+
+    } catch (e: any) {
+      setError(e?.message ?? "Error");
+    } finally {
+      setLoadingClock(false);
+    }
+  };
+
+  const clockOut = async () => {
+    setLoadingClock(true);
+    setError(null);
+
+    try {
+      const token = authService.getToken?.();
+      if (!token) throw new Error("No authentication token found");
+
+      const r = await fetch(`${API_BASE}/time-entries/clock-out`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!r.ok) throw new Error(`Error ${r.status}`);
+
+      setIsClockedIn(false);
+
+      // Limpiar el estado
+      clockService.clearClockState();
+
+    } catch (e: any) {
+      setError(e?.message ?? "Error");
+    } finally {
+      setLoadingClock(false);
+    }
+  };
 
   /* --- Select styles --- */
   const btnBase = "rounded-lg transition-all duration-300 hover:scale-105";
@@ -592,6 +592,7 @@ const clockOut = async () => {
             </Flex>
           </Card>
         </div>
+
         <Card className="rounded-xl shadow-lg border-0 bg-white mb-8">
           <Title className="text-lg font-semibold text-gray-800 mb-4">Seleccionar Rango de Tiempo</Title>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -689,6 +690,7 @@ const clockOut = async () => {
               )}
             </div>
           </Card>
+
           <Card className="rounded-xl shadow-lg border-0 bg-white">
             <Title className="text-lg font-semibold text-gray-800 mb-4">
               {timeRange === "week" ? "Horas Semanales (Dom–Sáb)" : "Horas por mes (Ene–Dic)"}
@@ -725,6 +727,7 @@ const clockOut = async () => {
             </div>
           </Card>
         </div>
+
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>Actualizado por última vez: {new Date().toLocaleDateString("es-CO")}</p>
         </div>
