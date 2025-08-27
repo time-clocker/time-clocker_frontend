@@ -501,6 +501,23 @@ export default function UserDashboard() {
     }
   };
 
+  const formatUserName = (name: string | null) => {
+  if (!name || name === "Usuario") return "Usuario";
+  
+  const parts = name.split(' ');
+  
+  // Si el nombre tiene 3 palabras o menos, mostrarlo completo en una línea
+  if (parts.length <= 3) return name;
+  
+  // Para nombres con más de 3 palabras, dividir después de la segunda palabra
+  return (
+    <>
+      <div>{parts.slice(0, 2).join(' ')}</div>
+      <div>{parts.slice(2).join(' ')}</div>
+    </>
+  );
+};
+
   /* --- Select styles --- */
   const btnBase = "rounded-lg transition-all duration-300 hover:scale-105";
   const active = "bg-blue-600 text-white hover:scale-105";
@@ -541,7 +558,9 @@ export default function UserDashboard() {
               <div className="flex items-center space-x-3 text-right">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-700">Bienvenido</p>
-                  <p className="text-lg font-semibold text-gray-900">{userName || "Usuario"}</p>
+                  <div className="text-lg font-semibold text-gray-900">
+                    {formatUserName(userName)}
+                  </div>
                 </div>
               </div>
             </div>
