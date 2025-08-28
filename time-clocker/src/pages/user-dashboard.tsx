@@ -1,4 +1,4 @@
-import { Card, Title, DonutChart, Flex, Button, Metric, Text, Divider, Select, SelectItem } from "@tremor/react";
+import { Card, Title, DonutChart, Flex, Button, Metric, Text, Divider, Select, SelectItem, DatePicker } from "@tremor/react";
 import { useEffect, useMemo, useState } from "react";
 import { authService } from "../services/auth-service";
 import { clockService } from "../services/clock-service";
@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "https://time-clocker-backend.
 const moneyCO = (n: number) => (n ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 0 });
 const MONTHS_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const BAR_COLORS = ["#008037","#E0AF00","#10b981","#3b82f6","#8b5cf6","#f43f5e","#f97316","#14b8a6","#ec4899"];
+const BAR_COLORS = ["#008037", "#E0AF00", "#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f97316", "#14b8a6", "#ec4899"];
 
 function monthNameLong(m1: number) {
   return new Date(0, m1 - 1).toLocaleString("es-CO", { month: "long" });
@@ -651,52 +651,57 @@ export default function UserDashboard() {
                 Mensual
               </button>
             </Flex>
-
-            {timeRange === "week" ? (
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-600 mb-1">Fecha de referencia (semana dom–sáb)</label>
-                <input
-                  type="date"
-                  className="border border-gray-300 rounded-lg px-3 py-2 shadow-sm hover:bg-blue-50 focus:bg-blue-100 outline-none"
-                  value={refDate}
-                  onChange={(e) => setRefDate(e.target.value)}
-                  max={todayLocal()}
-                />
-              </div>
-            ) : (
-              <div className="flex items-end gap-3">
-                <div className="flex flex-col min-w-36">
-                  <label className="text-xs text-gray-600 mb-1">Año</label>
-                  <Select
-                    value={String(year)}
-                    onValueChange={(v) => setYear(Number(v))}
-                    className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
-                  >
-                    {Array.from({ length: 6 }, (_, i) => {
-                      const y = new Date().getFullYear() - i;
-                      return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
-                    })}
-                  </Select>
+            <Card className="flex flex-col gap-2 p-3 rounded-lg shadow-sm border-0 bg-white">
+              {timeRange === "week" ? (
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">Fecha de referencia (semana dom–sáb)</label>
+                  <input
+                    type="date"
+                    className="border border-gray-300 rounded-lg px-3 py-2 shadow-sm hover:bg-blue-50 focus:bg-blue-100 outline-none"
+                    value={refDate}
+                    onChange={(e) => setRefDate(e.target.value)}
+                    max={todayLocal()}
+                  />
                 </div>
-                <div className="flex flex-col min-w-44">
-                  <label className="text-xs text-gray-600 mb-1">Mes (solo pastel)</label>
-                  <Select
-                    value={String(donutMonth)}
-                    onValueChange={(v) => setDonutMonth(Number(v))}
-                    className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
-                  >
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const m = i + 1;
-                      return (
-                        <SelectItem key={m} value={String(m)}>
-                          {String(m).padStart(2, "0")} — {MONTHS_SHORT[i]}
-                        </SelectItem>
-                      );
-                    })}
-                  </Select>
+              ) : (
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col min-w-36">
+                    <label className="text-xs text-gray-600 mb-1">Año</label>
+                    <Select
+                      value={String(year)}
+                      onValueChange={(v) => setYear(Number(v))}
+                      className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                    >
+                      {Array.from({ length: 6 }, (_, i) => {
+                        const y = new Date().getFullYear() - i;
+                        return (
+                          <SelectItem key={y} value={String(y)} className="tremor-option-solid">
+                            {y}
+                          </SelectItem>
+                        );
+                      })}
+                    </Select>
+                  </div>
+                  <div className="flex flex-col min-w-44">
+                    <label className="text-xs text-gray-600 mb-1">Mes (solo pastel)</label>
+                    <Select
+                      value={String(donutMonth)}
+                      onValueChange={(v) => setDonutMonth(Number(v))}
+                      className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const m = i + 1;
+                        return (
+                          <SelectItem key={m} value={String(m)} className="tremor-option-solid">
+                            {String(m).padStart(2, "0")} — {MONTHS_SHORT[i]}
+                          </SelectItem>
+                        );
+                      })}
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </Card>
           </div>
         </Card>
 

@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @layer components {
   .btn-primary {
     @apply bg-pandora-green hover:bg-pandora-green-dark text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200;
@@ -32,15 +31,57 @@
     @apply bg-gradient-to-br from-green-50 to-yellow-50;
   }
   
-  /* Puedes ajustar los colores según tu preferencia */
   .tremor-option-solid {
     background-color: #fff !important;
     color: #1e293b !important;
     transition: background 0.2s;
   }
+  
   .tremor-option-solid:hover,
   .tremor-option-solid[data-headlessui-state~="active"] {
-    background-color: #2563eb !important; /* azul-600 */
+    background-color: #2563eb !important;
     color: #fff !important;
   }
+  
+  .tremor-Select-root {
+    background-color: white !important;
+  }
+  
+  .tremor-Select-button {
+    background-color: white !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+  }
+  
+  .tremor-Select-button:hover {
+    background-color: #eff6ff !important;
+  }
+  
+  .tremor-Select-button:focus {
+    background-color: #dbeafe !important;
+    outline: none !important;
+  }
+  
+  /* Estilos para el DatePicker */
+  .tremor-DatePicker-input {
+    background-color: white !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+  }
+  
+  .tremor-DatePicker-input:hover {
+    background-color: #eff6ff !important;
+  }
+  
+  .tremor-DatePicker-input:focus {
+    background-color: #dbeafe !important;
+    outline: none !important;
+  }
+}
+
+.tremor-Select-dropdown {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }

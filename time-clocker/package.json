@@ -10,11 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.7",
+    "@internationalized/date": "^3.9.0",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@react-aria/datepicker": "^3.15.1",
+    "@react-stately/datepicker": "^3.15.1",
     "@remixicon/react": "^4.6.0",
     "@tremor/react": "^3.18.7",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
     "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.8.1",
     "react-toastify": "^11.0.5",

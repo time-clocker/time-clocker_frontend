@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card, Title, DonutChart, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, Metric, Text, Flex, Divider, Badge, Select, SelectItem} from "@tremor/react";
+import { Card, Title, DonutChart, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, Metric, Text, Flex, Divider, Badge, Select, SelectItem } from "@tremor/react";
 import { authService } from "../services/auth-service";
+import EmployeeEditModal from "../components/employees-edit";
+import type { EmployeeData } from "../components/employees-edit";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
-const BAR_COLORS = ["#008037","#FAC300","#888AA0","#10b981","#3b82f6","#8b5cf6","#f43f5e","#f97316","#14b8a6","#ec4899"];
+const BAR_COLORS = ["#008037", "#FAC300", "#888AA0", "#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f97316", "#14b8a6", "#ec4899"];
 
 type GlobalMonthlyRow = {
   employee_id: string;
@@ -36,6 +38,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [data, setData] = useState<GlobalMonthlyResponse>({ rows: [] });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeData | null>(null);
 
   async function fetchMonthly() {
     try {
@@ -77,6 +81,46 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchMonthly();
   }, []);
+
+  const handleEmployeeClick = (employee: EmployeeData) => {
+    setSelectedEmployee(employee);
+    setIsModalOpen(true);
+  };
+
+  // Función para guardar los cambios del empleado
+  const handleSaveEmployee = async (employeeData: EmployeeData) => {
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...authService.getAuthorizationHeader(),
+      };
+
+      // Aquí debes implementar la llamada a tu API para actualizar los datos del empleado
+      const res = await fetch(`${API_BASE}/employees/${employeeData.employee_id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(employeeData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error al actualizar empleado");
+      }
+
+      // Actualizar los datos locales
+      setData(prev => ({
+        ...prev,
+        rows: prev.rows.map(row =>
+          row.employee_id === employeeData.employee_id ? employeeData : row
+        )
+      }));
+
+      // También puedes recargar los datos completos
+      // fetchMonthly();
+    } catch (error) {
+      console.error("Error al guardar empleado:", error);
+      setError("Error al guardar los cambios del empleado");
+    }
+  };
 
   const yearOptions = useMemo(() => {
     const current = new Date().getFullYear();
@@ -120,7 +164,7 @@ export default function AdminDashboard() {
                 <Select
                   value={String(year)}
                   onValueChange={(v) => setYear(Number(v))}
-                  className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-blue-50 focus:!bg-blue-100"
+                  className="!bg-white !border !border-gray-300 !shadow-sm !transition-colors hover:!bg-yellow-50 focus:!bg-yellow-100"
                 >
                   {yearOptions.map((y) => (
                     <SelectItem key={y} value={y} className="tremor-option-solid">
@@ -145,7 +189,7 @@ export default function AdminDashboard() {
               </div>
               <button
                 onClick={fetchMonthly}
-                className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 transition"
+                className="h-10 px-4 rounded-lg bg-pandora-yellow text-white text-sm hover:bg-pandora-yellow-dark transition"
                 disabled={loading}
               >
                 {loading ? "Cargando..." : "Actualizar"}
@@ -306,7 +350,8 @@ export default function AdminDashboard() {
 
               {!loading &&
                 data?.rows?.map((row) => (
-                  <TableRow key={row.employee_id}>
+                  <TableRow key={row.employee_id} className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => handleEmployeeClick(row)}>
                     <TableCell className="font-medium">{row.full_name ?? "—"}</TableCell>
                     <TableCell>{fixed2(row.hours?.diurnal)} hrs</TableCell>
                     <TableCell>{fixed2(row.hours?.nocturnal)} hrs</TableCell>
@@ -341,6 +386,12 @@ export default function AdminDashboard() {
           <p>Desarrollado por JDT Software</p>
         </div>
       </div>
+      <EmployeeEditModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        employee={selectedEmployee}
+        onSave={handleSaveEmployee}
+      />
     </div>
   );
 }
