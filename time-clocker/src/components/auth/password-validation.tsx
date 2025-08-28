@@ -1,14 +1,7 @@
 import { Text } from "@tremor/react";
 import { RiCheckboxCircleFill, RiErrorWarningFill } from "react-icons/ri";
 
-interface PasswordValidationProps {
-  password: string;
-}
-
-type ValidationRule = {
-  test: (password: string) => boolean;
-  message: string;
-};
+import type { ValidationRule, PasswordValidationProps } from "../../types/password-validation";
 
 const passwordRules: ValidationRule[] = [
   {

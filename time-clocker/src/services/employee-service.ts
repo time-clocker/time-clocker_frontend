@@ -1,6 +1,5 @@
 import { authService } from "./auth-service";
-
-const API = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
+import { API } from "../constants/auth-service";
 
 export const employeeService = {
   async deleteEmployee(employeeId: string) {

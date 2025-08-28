@@ -26,11 +26,6 @@ export const api = axios.create({
   },
 });
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-  returnSecureToken: boolean;
-}
 
 export interface LoginResponse {
   idToken: string;
@@ -54,3 +49,17 @@ export const documentTypes = [
   { value: "Pasaporte", label: "Pasaporte" },
   { value: "Tarjeta de identidad", label: "Tarjeta de identidad" },
 ] as const;
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+  returnSecureToken?: boolean;
+};
+
+export type RegisterRequest = {
+  full_name: string;
+  email: string;
+  password: string;
+  doc_type: string;
+  doc_number: string;
+};

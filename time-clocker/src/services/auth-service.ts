@@ -1,106 +1,77 @@
-export type LoginRequest = {
-  email: string;
-  password: string;
-  returnSecureToken?: boolean;
-};
+import type { LoginRequest, RegisterRequest } from "../types/auth";
 
-export type RegisterRequest = {
-  full_name: string;
-  email: string;
-  password: string;
-  doc_type: string;
-  doc_number: string;
-};
+import { API, JSON_HEADERS, ROLE_KEY, TOKEN_KEY, USER_DATA_KEY } from "../constants/auth-service";
 
-const API = import.meta.env.VITE_API_URL ?? "https://time-clocker-backend.onrender.com";
+async function handleResponse(res: Response, errorMsg: string) {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.detail || errorMsg);
+  }
+  return res.json();
+}
 
-const TOKEN_KEY = "authToken";
-const ROLE_KEY = "role";
-const USER_DATA_KEY = "userData";
+function saveUserData(data: any, role: string) {
+  const userData = { ...data, role };
+  localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+  return userData;
+}
 
 export const authService = {
   async login(data: LoginRequest) {
     const res = await fetch(`${API}/auth/login`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "Accept": "application/json" 
-      },
+      headers: JSON_HEADERS,
       body: JSON.stringify({ ...data, returnSecureToken: true }),
     });
-    
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.detail || "Login failed");
-    }
-    
-    const loginData = await res.json();
+
+    const loginData = await handleResponse(res, "Login failed");
     const token = loginData?.idToken;
-    
+
     if (!token) throw new Error("No idToken received from backend");
-    
     localStorage.setItem(TOKEN_KEY, token);
-    
+
     try {
       const me = await this.getMe();
       const role = (me?.role ?? me?.claims?.role ?? "employee") as string;
       localStorage.setItem(ROLE_KEY, role);
-      
+
       try {
         const employeeProfile = await this.getEmployeeProfile();
+        const userData = saveUserData(employeeProfile, role);
 
-        const userData = {
-          ...employeeProfile,
-          role: role 
-        };
-        
-        localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
-        
-        return { 
-          token, 
+        return {
+          token,
           role,
           user: userData,
           refreshToken: loginData.refreshToken,
-          expiresIn: loginData.expiresIn
+          expiresIn: loginData.expiresIn,
         };
-        
-      } catch (profileError) {
-        return { 
-          token, 
+      } catch {
+        return {
+          token,
           role,
           refreshToken: loginData.refreshToken,
-          expiresIn: loginData.expiresIn
+          expiresIn: loginData.expiresIn,
         };
       }
-      
-    } catch (error) {
-      localStorage.removeItem(TOKEN_KEY);
-      throw new Error("Login successful but failed to fetch user role and data");
+    } catch {
+      this.logout();
+      throw new Error(
+        "Login successful but failed to fetch user role and data"
+      );
     }
   },
 
-  /** Nuevo método de registro */
   async register(data: RegisterRequest) {
     const res = await fetch(`${API}/auth/register`, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "Accept": "application/json" 
-      },
+      headers: JSON_HEADERS,
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.detail || "Registration failed");
-    }
-
-    const registerData = await res.json();
+    const registerData = await handleResponse(res, "Registration failed");
     const token = registerData?.idToken;
-
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
+    if (token) localStorage.setItem(TOKEN_KEY, token);
 
     return registerData;
   },
@@ -108,39 +79,28 @@ export const authService = {
   async getEmployeeProfile(): Promise<any> {
     const token = this.getToken();
     if (!token) throw new Error("Not authenticated");
-    
+
     const res = await fetch(`${API}/employees/me/profile`, {
-      headers: { 
-        "Authorization": `Bearer ${token}`, 
-        "Accept": "application/json" 
-      },
+      headers: { ...this.getAuthorizationHeader(), Accept: "application/json" },
     });
-    
-    if (!res.ok) {
-      if (res.status === 401) {
-        this.logout();
-        throw new Error("Session expired. Please login again.");
-      }
-      throw new Error("Failed to fetch employee profile");
+
+    if (res.status === 401) {
+      this.logout();
+      throw new Error("Session expired. Please login again.");
     }
-    
-    return res.json();
+
+    return handleResponse(res, "Failed to fetch employee profile");
   },
 
   async getMe(): Promise<any> {
     const token = this.getToken();
     if (!token) throw new Error("Not authenticated");
-    
+
     const res = await fetch(`${API}/auth/me`, {
-      headers: { 
-        "Authorization": `Bearer ${token}`, 
-        "Accept": "application/json" 
-      },
+      headers: { ...this.getAuthorizationHeader(), Accept: "application/json" },
     });
-    
-    if (!res.ok) throw new Error("Session invalid or expired");
-    
-    return res.json();
+
+    return handleResponse(res, "Session invalid or expired");
   },
 
   getToken() {
@@ -158,7 +118,7 @@ export const authService = {
 
   getUserName() {
     const userData = this.getUserData();
-    return userData?.full_name || userData?.name || 'Usuario';
+    return userData?.full_name || userData?.name || "Usuario";
   },
 
   logout() {
@@ -166,9 +126,9 @@ export const authService = {
     localStorage.removeItem(ROLE_KEY);
     localStorage.removeItem(USER_DATA_KEY);
   },
-  
+
   getAuthorizationHeader(): Record<string, string> {
     const token = this.getToken();
-    return token ? { "Authorization": `Bearer ${token}` } : {};
-  }
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  },
 };
