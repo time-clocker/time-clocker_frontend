@@ -1,4 +1,4 @@
-import { Card, Title, DonutChart, Flex, Button, Metric, Text, Divider, Select, SelectItem, DatePicker } from "@tremor/react";
+import { Card, Title, DonutChart, Flex, Button, Metric, Text, Divider, Select, SelectItem } from "@tremor/react";
 import { useEffect, useMemo, useState } from "react";
 import { authService } from "../services/auth-service";
 import { clockService } from "../services/clock-service";
