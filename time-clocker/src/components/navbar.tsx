@@ -1,9 +1,11 @@
 import { Button } from "@tremor/react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import flameIcon from "../assets/flame-icon.png";
+
 import { authService } from "../services/auth-service";
 import { clockService } from "../services/clock-service";
+
+import pandora_navbar from "../assets/pandora_navbar.png";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -15,12 +17,11 @@ const Navbar = () => {
     setRole(r);
   }, [location.pathname]);
 
-const handleLogout = () => {
-  // Limpiar TODO el estado de reloj al hacer logout
-  clockService.clearClockState();
-  authService.logout();
-  navigate("/login", { replace: true });
-};
+  const handleLogout = () => {
+    clockService.clearClockState();
+    authService.logout();
+    navigate("/login", { replace: true });
+  };
 
   const handleLogoClick = () => {
     if (role === "admin") {
@@ -30,7 +31,6 @@ const handleLogout = () => {
     }
   };
 
-  // Ocultar navbar en páginas públicas
   if (location.pathname === "/" || location.pathname === "/login") {
     return null;
   }
@@ -43,7 +43,7 @@ const handleLogout = () => {
             className="flex-shrink-0 flex items-center cursor-pointer hover:opacity-80 transition-opacity"
             onClick={handleLogoClick}
           >
-            <img src={flameIcon} alt="WorkTime Logo" className="h-12 w-12" />
+            <img src={pandora_navbar} alt="Pandora Logo" className="h-24 w-auto object-contain" />
           </div>
 
           <div className="flex items-center">
