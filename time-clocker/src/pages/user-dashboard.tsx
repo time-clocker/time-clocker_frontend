@@ -497,7 +497,7 @@ export default function UserDashboard() {
     if (!name || name === "Usuario") return "Usuario";
 
     const parts = name.split(' ');
-    if (parts.length <= 3) return name;
+    if (parts.length <= 2) return name;
     return (
       <>
         <div>{parts.slice(0, 2).join(' ')}</div>

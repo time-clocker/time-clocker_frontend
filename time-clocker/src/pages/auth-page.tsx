@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 import PANDORA from "../assets/PANDORA.png";
 import type { LoginRequest } from "../types/auth";
+import { validatePassword } from "../components/auth/password-validation"; 
 
 const DOC_TYPE_MAP: Record<string, string> = {
   "Cédula de ciudadanía": "CC",
@@ -27,6 +28,8 @@ export default function AuthPage() {
     confirmPassword: "",
   });
 
+   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+
   const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +38,11 @@ export default function AuthPage() {
       ...prev,
       [name]: value,
     }));
+
+    if (name === "password" && !isLogin) {
+      const { errors } = validatePassword(value);
+      setPasswordErrors(errors);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +74,15 @@ export default function AuthPage() {
       }
     } else {
       // --- REGISTRO ---
+
+      const { isValid, errors } = validatePassword(formData.password);
+      
+      if (!isValid) {
+        toast.error("La contraseña no cumple con los requisitos de seguridad");
+        setPasswordErrors(errors);
+        return;
+      }
+
       if (formData.password !== formData.confirmPassword) {
         toast.error("Las contraseñas no coinciden");
         return;
@@ -131,6 +148,19 @@ export default function AuthPage() {
             isLoading={isLoading}
           />
 
+          {!isLogin && passwordErrors.length > 0 && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <Text className="text-sm font-semibold text-red-700 mb-2">
+                La contraseña no cumple con los siguientes requisitos:
+              </Text>
+              <ul className="list-disc list-inside space-y-1">
+                {passwordErrors.map((err, idx) => (
+                  <li key={idx} className="text-xs text-red-600">{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <Divider className="my-6">o</Divider>
 
           <div className="text-center">
@@ -140,7 +170,10 @@ export default function AuthPage() {
             <Button
               variant="light"
               className="mt-2 text-pandora-green hover:text-pandora-green-dark transition-colors"
-              onClick={() => setIsLogin(!isLogin)}
+               onClick={() => {
+                setIsLogin(!isLogin);
+                setPasswordErrors([]);
+              }}
             >
               {isLogin ? "Regístrate aquí" : "Inicia sesión aquí"}
             </Button>
