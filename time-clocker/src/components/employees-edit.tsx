@@ -28,7 +28,6 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
         pay_total: 0
     });
 
-    // Actualizar el formulario cuando cambie el empleado
     useEffect(() => {
         if (employee) {
             setFormData(employee);
@@ -104,7 +103,7 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
                                     as="h3"
                                     className="text-lg font-medium leading-6 text-gray-900 border-b pb-2"
                                 >
-                                    Editar Empleado: {employee?.full_name}
+                                    Gestion de Empleado
                                 </Dialog.Title>
 
                                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -184,13 +183,12 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
                                     <div className="flex justify-between items-center pt-4">
                                         <button
                                             type="button"
-                                            onClick={() => setConfirmOpen(true)} // 🔹 abre confirmación
+                                            onClick={() => setConfirmOpen(true)}
                                             className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
                                         >
                                             Eliminar
                                         </button>
 
-                                        {/* Confirmación de eliminación */}
                                         <ConfirmDialog
                                             isOpen={confirmOpen}
                                             title="Eliminar empleado"
