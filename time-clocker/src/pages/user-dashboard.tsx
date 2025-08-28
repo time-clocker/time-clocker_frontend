@@ -3,13 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { authService } from "../services/auth-service";
 import { clockService } from "../services/clock-service";
 
-const TZ = "America/Bogota";
-const API_BASE = import.meta.env.VITE_API_BASE ?? "https://time-clocker-backend.onrender.com";
-
-const moneyCO = (n: number) => (n ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 0 });
-const MONTHS_SHORT = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const BAR_COLORS = ["#008037", "#E0AF00", "#10b981", "#3b82f6", "#8b5cf6", "#f43f5e", "#f97316", "#14b8a6", "#ec4899"];
+import { API } from "../constants/auth-service";
+import { BAR_COLORS, DAYS_ES, MONTHS_SHORT, moneyCO, TZ, stripTime, daysDiff } from "../constants/user-dashboard";
+import type{ EmployeeReport, AnyObj } from "..//types/user-dashboard";
+import Footer from "../components/footer";
 
 function monthNameLong(m1: number) {
   return new Date(0, m1 - 1).toLocaleString("es-CO", { month: "long" });
@@ -35,12 +32,6 @@ function parseAsLocalDate(raw: string): Date {
   if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
   return new Date(raw);
 }
-const stripTime = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const daysDiff = (a: Date, b: Date) =>
-  Math.floor((stripTime(a).getTime() - stripTime(b).getTime()) / 86400000);
-
-type AnyObj = Record<string, any>;
-type EmployeeReport = AnyObj;
 
 export default function UserDashboard() {
   const [timeRange, setTimeRange] = useState<"week" | "month">("week");
@@ -49,7 +40,7 @@ export default function UserDashboard() {
 
   const today = new Date();
   const [year, setYear] = useState<number>(today.getFullYear());
-  const [donutMonth, setDonutMonth] = useState<number>(today.getMonth() + 1); // 1..12
+  const [donutMonth, setDonutMonth] = useState<number>(today.getMonth() + 1);
 
   const [userName, setUserName] = useState<string>("");
   const [employeeId, setEmployeeId] = useState<string | null>(null);
@@ -60,11 +51,9 @@ export default function UserDashboard() {
   const [loadingClock, setLoadingClock] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reportes
   const [report, setReport] = useState<EmployeeReport | null>(null);
   const [donutMonthReport, setDonutMonthReport] = useState<EmployeeReport | null>(null);
 
-  /* --- Perfil --- */
   useEffect(() => {
     (async () => {
       try {
@@ -94,17 +83,14 @@ export default function UserDashboard() {
         const token = authService.getToken?.();
         if (!token) return;
 
-        // Verificar estado guardado después de la limpieza
         const storedState = clockService.getClockState();
 
-        // Si hay estado válido para este empleado, usarlo
         if (storedState && clockService.isValidForEmployee(storedState, employeeId)) {
           setIsClockedIn(storedState.isClockedIn);
           return;
         }
 
-        // Consultar al servidor para el estado actual
-        const r = await fetch(`${API_BASE}/time-entries/status`, {
+        const r = await fetch(`${API}/time-entries/status`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -118,7 +104,6 @@ export default function UserDashboard() {
 
         setIsClockedIn(clockedIn);
 
-        // Actualizar el estado local
         if (clockedIn) {
           clockService.setClockState({
             isClockedIn: true,
@@ -147,7 +132,7 @@ export default function UserDashboard() {
         const token = authService.getToken?.();
         if (!token) throw new Error("No authentication token found");
 
-        let url = `${API_BASE}/reports/employee/${employeeId}`;
+        let url = `${API}/reports/employee/${employeeId}`;
         if (timeRange === "week") {
           const refIso = `${refDate}T00:00:00`;
           const qs = new URLSearchParams({ timezone: TZ, ref_date: refIso });
@@ -201,7 +186,7 @@ export default function UserDashboard() {
           month: String(donutMonth),
           timezone: TZ,
         });
-        const url = `${API_BASE}/reports/employee/${employeeId}/monthly?${qs.toString()}`;
+        const url = `${API}/reports/employee/${employeeId}/monthly?${qs.toString()}`;
         const resp = await fetch(url, {
           headers: {
             Accept: "application/json",
@@ -226,7 +211,6 @@ export default function UserDashboard() {
     }
   }, [employeeId]);
 
-  // Efecto para limpiar estado obsoleto al cargar el componente
   useEffect(() => {
     const storedState = clockService.getClockState();
     if (storedState) {
@@ -234,7 +218,6 @@ export default function UserDashboard() {
       const now = new Date();
       const isToday = clockInDate.toDateString() === now.toDateString();
 
-      // Limpiar si no es de hoy
       if (!isToday) {
         clockService.clearClockState();
         setIsClockedIn(false);
@@ -436,7 +419,7 @@ export default function UserDashboard() {
       const token = authService.getToken?.();
       if (!token) throw new Error("No authentication token found");
 
-      const r = await fetch(`${API_BASE}/time-entries/clock-in`, {
+      const r = await fetch(`${API}/time-entries/clock-in`, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -472,7 +455,7 @@ export default function UserDashboard() {
       const token = authService.getToken?.();
       if (!token) throw new Error("No authentication token found");
 
-      const r = await fetch(`${API_BASE}/time-entries/clock-out`, {
+      const r = await fetch(`${API}/time-entries/clock-out`, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -781,11 +764,7 @@ export default function UserDashboard() {
             </div>
           </Card>
         </div>
-
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>© 2025 Pandora Restaurante, Inc. All rights reserved.</p>
-          <p>Desarrollado por JDT Software</p>
-        </div>
+        <Footer />
       </div>
     </div>
   );
