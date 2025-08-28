@@ -10,6 +10,7 @@ import type { LoginRequest } from "../types/auth";
 import { validatePassword } from "../components/auth/password-validation"; 
 
 import { DOC_TYPE_MAP } from "../constants/auth-page";
+import Footer from "../components/footer";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -181,10 +182,7 @@ export default function AuthPage() {
             Términos y Condiciones
           </p>
         </div>
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>© 2025 Pandora Restaurante, Inc. All rights reserved.</p>
-          <p>Desarrollado por JDT Software</p>
-        </div>
+        <Footer />
       </div>
     </div>
   );
