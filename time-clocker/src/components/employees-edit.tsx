@@ -2,26 +2,11 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { toast } from "react-toastify";
 
+import type { EmployeeData, EmployeeEditModalProps } from "../types/employees";
 import { employeeService } from "../services/employee-service";
 import { ConfirmDialog } from "./messages/confirm-dialog";
-
-export interface EmployeeData {
-  employee_id: string;
-  full_name: string;
-  hours?: { diurnal: number; nocturnal: number; extra: number; total: number };
-  pay_total?: number;
-  email?: string;
-  document_number?: string | null;
-  hourly_rate?: number;
-}
-
-interface EmployeeEditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  employee: EmployeeData | null;  
-  onSave?: (employeeData: EmployeeData) => void;
-  onDelete?: (employeeId: string) => void;
-}
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import Pdf from "./pdf";
 
 export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: EmployeeEditModalProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -235,40 +220,82 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
                     </div>
                   </fieldset>
 
-                  <div className="flex justify-between items-center pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmOpen(true)}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-60"
-                      disabled={isSaving || isLoading}
-                    >
-                      Eliminar
-                    </button>
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex justify-end">
+                      <PDFDownloadLink
+                        document={
+                          <Pdf
+                            employee={{
+                              full_name: form.full_name || employee?.full_name || "—",
+                              email: form.email || employee?.email,
+                              document_number: form.document_number || employee?.document_number,
+                              hourly_rate: form.hourly_rate || employee?.hourly_rate,
+                            }}
+                            summary={{
+                              hours: {
+                                diurnal: employee?.hours?.diurnal,
+                                nocturnal: employee?.hours?.nocturnal,
+                                extra: employee?.hours?.extra,
+                                total: employee?.hours?.total,
+                              },
+                              pay_total: employee?.pay_total,
+                            }}
+                            reportMeta={{
+                              monthLabel: new Date().toLocaleString(undefined, { month: "long", year: "numeric" }),
+                              generatedBy: "Administrador",
+                            }}
+                          />
+                        }
+                        fileName={`reporte-${(form.full_name || employee?.full_name || "empleado")
+                          .toLowerCase()
+                          .replace(/\s+/g, "-")}.pdf`}
+                      >
+                        {({ loading }) => (
+                          <button
+                            type="button"
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            {loading ? "Generando..." : "Imprimir reporte"}
+                          </button>
+                        )}
+                      </PDFDownloadLink>
+                    </div>
 
-                    <ConfirmDialog
-                      isOpen={confirmOpen}
-                      title="Eliminar empleado"
-                      message={`¿Seguro que deseas eliminar a ${form.full_name || employee?.full_name || 'este empleado'}? Esta acción no se puede deshacer.`}
-                      onCancel={() => setConfirmOpen(false)}
-                      onConfirm={handleDelete}
-                    />
-
-                    <div className="flex space-x-3">
+                    <div className="flex justify-between items-center pt-4">
                       <button
                         type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                        disabled={isSaving}
+                        onClick={() => setConfirmOpen(true)}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-60"
+                        disabled={isSaving || isLoading}
                       >
-                        Cancelar
+                        Eliminar
                       </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-2 text-sm font-medium text-white bg-pandora-green rounded-md hover:bg-pandora-green-dark focus:outline-none focus:ring-2 focus:ring-pandora-green disabled:opacity-60"
-                        disabled={isSaving || isLoading || !hasChanges}
-                      >
-                        {isSaving ? "Guardando..." : "Guardar"}
-                      </button>
+
+                      <ConfirmDialog
+                        isOpen={confirmOpen}
+                        title="Eliminar empleado"
+                        message={`¿Seguro que deseas eliminar a ${form.full_name || employee?.full_name || 'este empleado'}? Esta acción no se puede deshacer.`}
+                        onCancel={() => setConfirmOpen(false)}
+                        onConfirm={handleDelete}
+                      />
+
+                      <div className="flex space-x-3">
+                        <button
+                          type="button"
+                          onClick={onClose}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                          disabled={isSaving}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 text-sm font-medium text-white bg-pandora-green rounded-md hover:bg-pandora-green-dark focus:outline-none focus:ring-2 focus:ring-pandora-green disabled:opacity-60"
+                          disabled={isSaving || isLoading || !hasChanges}
+                        >
+                          {isSaving ? "Guardando..." : "Guardar"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </form>
