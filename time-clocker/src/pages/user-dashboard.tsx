@@ -465,6 +465,8 @@ export default function UserDashboard() {
         body: JSON.stringify({}),
       });
 
+      window.location.reload();
+
       if (!r.ok) throw new Error(`Error ${r.status}`);
 
       setIsClockedIn(false);
@@ -698,7 +700,7 @@ export default function UserDashboard() {
               data={donutData}
               category="value"
               index="name"
-              valueFormatter={(value) => `${value} hrs`}
+              valueFormatter={(value) => `${value.toFixed(2)} hrs`}
               colors={["amber", "slate", "emerald", "teal", "blue", "indigo", "violet", "pink", "rose", "red",]}
               variant="donut"
               className="h-72"

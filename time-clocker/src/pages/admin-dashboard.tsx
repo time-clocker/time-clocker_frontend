@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, Title, DonutChart, Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell, Metric, Text, Flex, Divider, Badge, Select, SelectItem } from "@tremor/react";
 
 import { authService } from "../services/auth-service";
-import EmployeeEditModal, { type EmployeeData } from "../components/employees-edit";
+import EmployeeEditModal from "../components/employees-edit";
 import { API } from "../constants/auth-service";
 import { BAR_COLORS, currency, fixed2 } from "../constants/admin-dashboard";
 
+import { type EmployeeData } from "../types/employees";
 import type { GlobalMonthlyResponse } from "../types/admin-dashboard";
 
 export default function AdminDashboard() {
