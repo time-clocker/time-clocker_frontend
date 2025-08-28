@@ -1,5 +1,8 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
+import { toast } from "react-toastify";
+import { employeeService } from "../services/employee-service";
+import { ConfirmDialog } from "./messages/confirm-dialog";
 
 export interface EmployeeData {
     employee_id: string;
@@ -13,9 +16,11 @@ interface EmployeeEditModalProps {
     onClose: () => void;
     employee: EmployeeData | null;
     onSave: (employeeData: EmployeeData) => void;
+    onDelete?: (employeeId: string) => void;
 }
 
 export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: EmployeeEditModalProps) {
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const [formData, setFormData] = useState<EmployeeData>({
         employee_id: '',
         full_name: '',
@@ -54,6 +59,18 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
         e.preventDefault();
         onSave(formData);
         onClose();
+    };
+
+    const handleDelete = async () => {
+        if (!employee) return;
+        try {
+            await employeeService.deleteEmployee(employee.employee_id);
+            toast.success("Empleado eliminado correctamente");
+            setConfirmOpen(false);
+            window.location.reload();
+        } catch (error: any) {
+            toast.error(error.message || "Error eliminando empleado");
+        }
     };
 
     return (
@@ -164,20 +181,39 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end space-x-3 pt-4">
+                                    <div className="flex justify-between items-center pt-4">
                                         <button
                                             type="button"
-                                            onClick={onClose}
-                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                            onClick={() => setConfirmOpen(true)} // 🔹 abre confirmación
+                                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
                                         >
-                                            Cancelar
+                                            Eliminar
                                         </button>
-                                        <button
-                                            type="submit"
-                                            className="px-4 py-2 text-sm font-medium text-white bg-pandora-green rounded-md hover:bg-pandora-green-dark focus:outline-none focus:ring-2 focus:ring-pandora-green"
-                                        >
-                                            Guardar
-                                        </button>
+
+                                        {/* Confirmación de eliminación */}
+                                        <ConfirmDialog
+                                            isOpen={confirmOpen}
+                                            title="Eliminar empleado"
+                                            message={`¿Seguro que deseas eliminar a ${employee?.full_name}? Esta acción no se puede deshacer.`}
+                                            onCancel={() => setConfirmOpen(false)}
+                                            onConfirm={handleDelete}
+                                        />
+
+                                        <div className="flex space-x-3">
+                                            <button
+                                                type="button"
+                                                onClick={onClose}
+                                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 text-sm font-medium text-white bg-pandora-green rounded-md hover:bg-pandora-green-dark focus:outline-none focus:ring-2 focus:ring-pandora-green"
+                                            >
+                                                Guardar
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </Dialog.Panel>
