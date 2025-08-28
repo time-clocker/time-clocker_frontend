@@ -1,35 +1,59 @@
 import { Text } from "@tremor/react";
 import { RiCheckboxCircleFill, RiErrorWarningFill } from "react-icons/ri";
 
-interface PasswordValidationProps {
-  password: string;
-}
+import type { ValidationRule, PasswordValidationProps } from "../../types/password-validation";
+
+const passwordRules: ValidationRule[] = [
+  {
+    test: (password) => password.length >= 8,
+    message: "Mínimo 8 caracteres",
+  },
+  {
+    test: (password) => /[A-Z]/.test(password),
+    message: "Al menos una mayúscula",
+  },
+  {
+    test: (password) => /[a-z]/.test(password),
+    message: "Al menos una minúscula",
+  },
+  {
+    test: (password) => /[0-9]/.test(password),
+    message: "Al menos un número",
+  },
+  {
+    test: (password) => /[*!"#@$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    message: "Al menos un carácter especial (*!\"#@$%^&*)",
+  },
+];
+
+const ValidationItem = ({
+  valid,
+  message,
+}: {
+  valid: boolean;
+  message: string;
+}) => (
+  <div className="flex items-center">
+    {valid ? (
+      <RiCheckboxCircleFill className="h-4 w-4 text-green-500 mr-2" />
+    ) : (
+      <RiErrorWarningFill className="h-4 w-4 text-red-500 mr-2" />
+    )}
+    <Text
+      className={`text-xs ${
+        valid ? "text-green-600" : "text-red-600"
+      }`}
+    >
+      {message}
+    </Text>
+  </div>
+);
 
 export const PasswordValidation = ({ password }: PasswordValidationProps) => {
-  const validations = [
-    {
-      condition: password.length >= 8,
-      text: "Mínimo 8 caracteres"
-    },
-    {
-      condition: /[A-Z]/.test(password),
-      text: "Al menos una mayúscula"
-    },
-    {
-      condition: /[a-z]/.test(password),
-      text: "Al menos una minúscula"
-    },
-    {
-      condition: /[0-9]/.test(password),
-      text: "Al menos un número"
-    },
-    {
-      condition: /[*!"#@$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
-      text: "Al menos un carácter especial (*!\"#@$%^&*)"
-    }
-  ];
-
-  const isValid = validations.every(v => v.condition);
+  const validations = passwordRules.map((rule) => ({
+    message: rule.message,
+    valid: rule.test(password),
+  }));
 
   return (
     <div className="mt-2 p-3 bg-gray-50 rounded-lg">
@@ -37,44 +61,23 @@ export const PasswordValidation = ({ password }: PasswordValidationProps) => {
         La contraseña debe contener:
       </Text>
       <div className="space-y-1">
-        {validations.map((validation, index) => (
-          <div key={index} className="flex items-center">
-            {validation.condition ? (
-              <RiCheckboxCircleFill className="h-4 w-4 text-green-500 mr-2" />
-            ) : (
-              <RiErrorWarningFill className="h-4 w-4 text-red-500 mr-2" />
-            )}
-            <Text className={`text-xs ${validation.condition ? 'text-green-600' : 'text-red-600'}`}>
-              {validation.text}
-            </Text>
-          </div>
+        {validations.map((v, index) => (
+          <ValidationItem key={index} valid={v.valid} message={v.message} />
         ))}
       </div>
     </div>
   );
 };
 
-export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-  
-  if (password.length < 8) {
-    errors.push("La contraseña debe tener al menos 8 caracteres");
-  }
-  if (!/[A-Z]/.test(password)) {
-    errors.push("La contraseña debe contener al menos una letra mayúscula");
-  }
-  if (!/[a-z]/.test(password)) {
-    errors.push("La contraseña debe contener al menos una letra minúscula");
-  }
-  if (!/[0-9]/.test(password)) {
-    errors.push("La contraseña debe contener al menos un número");
-  }
-  if (!/[*!"#@$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push("La contraseña debe contener al menos un carácter especial (*!\"#@$%^&*)");
-  }
+export const validatePassword = (
+  password: string
+): { isValid: boolean; errors: string[] } => {
+  const errors = passwordRules
+    .filter((rule) => !rule.test(password))
+    .map((rule) => rule.message);
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };

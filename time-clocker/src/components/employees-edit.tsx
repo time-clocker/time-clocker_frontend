@@ -1,6 +1,7 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { toast } from "react-toastify";
+
 import { employeeService } from "../services/employee-service";
 import { ConfirmDialog } from "./messages/confirm-dialog";
 
@@ -149,7 +150,6 @@ export default function EmployeeEdit({ isOpen, onClose, employee, onSave }: Empl
       toast.error(error.message || "Error eliminando empleado");
     }
   };
-
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={() => (!isSaving ? onClose() : null)}>

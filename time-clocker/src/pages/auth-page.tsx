@@ -9,12 +9,7 @@ import PANDORA from "../assets/PANDORA.png";
 import type { LoginRequest } from "../types/auth";
 import { validatePassword } from "../components/auth/password-validation"; 
 
-const DOC_TYPE_MAP: Record<string, string> = {
-  "Cédula de ciudadanía": "CC",
-  "Cédula de extranjería": "CE",
-  "Tarjeta de identidad": "TI",
-  "Pasaporte": "PAS",
-};
+import { DOC_TYPE_MAP } from "../constants/auth-page";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
