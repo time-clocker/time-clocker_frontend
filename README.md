@@ -1,24 +1,35 @@
 # 🍽️ PANDORA Restaurante - Frontend
 
-Frontend moderno para el sistema de gestión del restaurante PANDORA, construido con React 18, Vite, Tremor y Tailwind CSS.
+Frontend moderno y escalable para el sistema de gestión del restaurante PANDORA, desarrollado con React 18, Vite, Tailwind CSS y Tremor.
 
 ## 🚀 Características
 
-- ⚡ **Desarrollo ultrarrápido** con Vite
-- 🎨 **Diseño moderno** con Tailwind CSS y Tremor
-- 📱 **Totalmente responsive**
-- 🎯 **React 18** con mejores prácticas
-- 🎨 **Sistema de colores personalizado** de la marca PANDORA
-- 🔐 **Sistema de autenticación** integrado
+- **Desarrollo ultrarrápido** con Vite
+- **Diseño moderno** con Tailwind CSS y Tremor
+- **Totalmente responsive**
+- **Implementación en React 18 siguiendo buenas prácticas**
+- **Sistema de colores personalizado** de la marca PANDORA
+- **Sistema de autenticación** integrado
+- **Exportación de reportes en PDF** con react-pdf
 
 ## 🛠️ Tecnologías Utilizadas
 
 - **React 18** - Biblioteca de interfaz de usuario
 - **Vite** - Herramienta de build y desarrollo
 - **TypeScript** - Tipado estático
-- **Tailwind CSS** - Framework de CSS utility-first
+- **Tailwind CSS** - Framework de CSS
 - **Tremor** - Componentes UI para dashboards
+- **React Router DOM** – Enrutamiento de vistas
+- **Axios** – Cliente HTTP
+- **React Toastify** – Notificaciones personalizadas
+- **React PDF Renderer** – Generación de reportes en PDF
+- **React Day Picker** – Selección de fechas
+- **React Icons & Remix Icons** – Iconografía moderna
+- **Date-fns** – Utilidades para manejo de fechas
+
+
 - **@tailwindcss/forms** - Plugin para estilizar formularios
+
 
 ## 🎨 Paleta de Colores
 
@@ -35,14 +46,24 @@ La aplicación utiliza la paleta de colores oficial de PANDORA:
 1. **Clonar el repositorio**
    ```bash
    git clone [url-del-repositorio]
-   cd pandora-frontend
+   cd time-clocker_frontend
+   cd time-clocker
 
 2. **Instalar dependencias**
    ```bash
    npm install
-   o
-   pnpm install
 
 3. Ejecutar en desarrollo
    ```bash
    npm run dev
+
+
+## 📂 Scripts disponibles
+
+- dev → Inicia el servidor de desarrollo con Vite
+
+- build → Compila el proyecto con TypeScript y Vite
+
+- lint → Ejecuta ESLint sobre el código
+
+- preview → Levanta el servidor para previsualizar el build
