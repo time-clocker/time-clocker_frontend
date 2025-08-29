@@ -25,7 +25,6 @@ export default function Pdf({ employee, summary, reportMeta }: PdfProps) {
     return (
         <Document>
             <Page size="A4" style={STYLES.page}>
-                {/* Header */}
                 <View style={STYLES.header}>
                     <Image style={STYLES.logo} src={PANDORA} />
                     <View style={STYLES.titleBox}>
@@ -33,8 +32,7 @@ export default function Pdf({ employee, summary, reportMeta }: PdfProps) {
                         <Text style={STYLES.subtitle}>Periodo: {monthLabel}</Text>
                     </View>
                 </View>
-
-                {/* Datos personales */}
+                
                 <Text style={STYLES.sectionTitle}>Datos del empleado</Text>
                 <View style={STYLES.card}>
                     <View style={STYLES.row}>
@@ -55,7 +53,6 @@ export default function Pdf({ employee, summary, reportMeta }: PdfProps) {
                     </View>
                 </View>
 
-                {/* Totales del mes */}
                 <Text style={STYLES.sectionTitle}>Totales del mes</Text>
                 <View style={STYLES.table}>
                     <View style={STYLES.tHead}>
@@ -77,15 +74,13 @@ export default function Pdf({ employee, summary, reportMeta }: PdfProps) {
                     </View>
                 </View>
 
-                {/* Observaciones */}
                 <Text style={STYLES.sectionTitle}>Observaciones</Text>
                 <View style={[STYLES.card, { minHeight: 80 }]} />
 
-                {/* Firmas */}
                 <View style={STYLES.signatures}>
                     <View style={STYLES.signBox}>
                         <View style={STYLES.signLine} />
-                        <Text style={STYLES.signLabel}>Firma del Restaurante</Text>
+                        <Text style={STYLES.signLabel}>Firma del Administrador</Text>
                     </View>
                     <View style={STYLES.signBox}>
                         <View style={STYLES.signLine} />
@@ -93,7 +88,6 @@ export default function Pdf({ employee, summary, reportMeta }: PdfProps) {
                     </View>
                 </View>
 
-                {/* Footer */}
                 <View style={STYLES.footer}>
                     <Text>Generado: {generatedAt}</Text>
                     <Text>Pandora Restaurante · JDT Software</Text>
