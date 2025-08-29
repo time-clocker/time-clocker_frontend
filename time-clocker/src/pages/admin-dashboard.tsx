@@ -205,7 +205,7 @@ function CardChartDonut({ title, data, total }: { title: string; data: { name: s
         data={data}
         category="value"
         index="name"
-        valueFormatter={v => `${v} hrs`}
+        valueFormatter={v => `${v.toFixed(2)} hrs`}
         colors={["green", "blue", "yellow", "orange", "indigo", "violet", "cyan", "pink", "rose"]}
         variant="donut"
         className="h-72"
