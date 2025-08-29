@@ -26,7 +26,8 @@ export default function Pdf({ employee, summary, reportMeta }: PdfProps) {
         <Document>
             <Page size="A4" style={STYLES.page}>
                 <View style={STYLES.header}>
-                    <Image style={STYLES.logo} src={PANDORA} />
+                    <Image style={{ ...STYLES.logo }} src={PANDORA} />
+
                     <View style={STYLES.titleBox}>
                         <Text style={STYLES.title}>Time Clocker - Reporte de Empleado</Text>
                         <Text style={STYLES.subtitle}>Periodo: {monthLabel}</Text>

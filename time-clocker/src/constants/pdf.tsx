@@ -4,7 +4,7 @@ export const STYLES = StyleSheet.create({
   page: { padding: 32, fontSize: 11, color: "#111" },
 
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  logo: { width: 200, height: 0, objectFit: "contain" },
+  logo: { width: 200, height: 80, objectFit: "contain" },
   titleBox: { textAlign: "right" },
   title: { fontSize: 18, fontWeight: 700 },
   subtitle: { marginTop: 2, fontSize: 10, color: "#555" },
